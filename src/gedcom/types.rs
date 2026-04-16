@@ -2,10 +2,8 @@ use serde::{Deserialize, Serialize};
 
 type Xref = String;
 
-
 /// Physical address at which a fact occurs
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Address {
     pub value: Option<String>,
     pub adr1: Option<String>,
@@ -17,10 +15,8 @@ pub struct Address {
     pub country: Option<String>,
 }
 
-
 #[allow(clippy::module_name_repetitions)]
-#[derive(Clone, Default, Debug, PartialEq)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub enum EventType {
     Adoption,
     Birth,
@@ -36,10 +32,8 @@ pub enum EventType {
     Other,
 }
 
-
 /// Event fact
-#[derive(Clone, Debug, Default)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Event {
     pub event: EventType,
     pub date: Option<String>,
@@ -47,11 +41,10 @@ pub struct Event {
     pub citations: Vec<SourceCitation>,
 }
 
-
 impl TryFrom<&str> for Event {
     type Error = String;
 
-    fn try_from(value: &str) ->  Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         let etype = match value {
             "ADOP" => EventType::Adoption,
             "BIRT" => EventType::Birth,
@@ -66,13 +59,10 @@ impl TryFrom<&str> for Event {
         let mut event = Event::default();
         event.event = etype;
         Ok(event)
-
     }
-
 }
 
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Family {
     pub xref: Option<Xref>,
     pub individual1: Option<Xref>, // mapped from HUSB
@@ -96,11 +86,9 @@ impl Family {
             None => self.individual2 = Some(xref),
         };
     }
-
 }
 
-#[derive(Debug, Default)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 /// Header containing GEDCOM metadata
 pub struct Header {
     pub encoding: Option<String>,
@@ -117,11 +105,8 @@ pub struct Header {
     pub submission_tag: Option<String>,
 }
 
-
-
 /// A Person within the family tree
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Individual {
     pub xref: Option<Xref>,
     pub name: Option<Name>,
@@ -136,7 +121,12 @@ impl Individual {
     pub fn add_family(&mut self, link: FamilyLink) {
         let mut do_add = true;
         let xref = &link.xref;
-        for FamilyLink{link: _, xref: family_xref, pedigree: _} in &self.families {
+        for FamilyLink {
+            link: _,
+            xref: family_xref,
+            pedigree: _,
+        } in &self.families
+        {
             if family_xref.as_str() == xref.as_str() {
                 do_add = false;
             }
@@ -145,12 +135,10 @@ impl Individual {
             self.families.push(link);
         }
     }
-
 }
 
 /// Gender of an `Individual`
-#[derive(Debug, Default)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub enum Gender {
     #[default]
     Male,
@@ -160,18 +148,14 @@ pub enum Gender {
     Unknown,
 }
 
-
-
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub(crate) enum FamilyLinkType {
     #[default]
     Spouse,
     Child,
 }
 
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum Pedigree {
     Adopted,
     Birth,
@@ -182,7 +166,7 @@ pub(crate) enum Pedigree {
 impl TryFrom<&str> for Pedigree {
     type Error = String;
 
-    fn try_from(value: &str) ->  Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value.to_lowercase().as_str() {
             "adopted" => Ok(Pedigree::Adopted),
             "birth" => Ok(Pedigree::Birth),
@@ -190,13 +174,10 @@ impl TryFrom<&str> for Pedigree {
             "sealing" => Ok(Pedigree::Sealing),
             _ => Err(format!("Unrecognized family link pedigree: {}", value)),
         }
-
     }
-
 }
 
-#[derive(Debug, Default, PartialEq)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Name {
     pub value: Option<String>,
     pub given: Option<String>,
@@ -206,16 +187,13 @@ pub struct Name {
     pub suffix: Option<String>,
 }
 
-
 // TODO
 /// Multimedia item
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Media {}
 
 /// Data repository, the `REPO` tag
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Repository {
     /// Optional reference to link to this repo
     pub xref: Option<Xref>,
@@ -225,10 +203,8 @@ pub struct Repository {
     pub address: Option<Address>,
 }
 
-
 /// Citation linking a genealogy fact to a data `Source`
-#[derive(Clone, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SourceCitation {
     /// Reference to the `Source`
     pub xref: Xref,
@@ -237,8 +213,7 @@ pub struct SourceCitation {
 }
 
 /// Citation linking a `Source` to a data `Repository`
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct RepoCitation {
     /// Reference to the `Repository`
     pub xref: Xref,
@@ -246,18 +221,14 @@ pub struct RepoCitation {
     pub call_number: Option<String>,
 }
 
-#[derive(Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CustomData {
     pub tag: String,
     pub value: String,
 }
 
-
-
 /// Submitter of the data, ie. who reported the genealogy fact
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Submitter {
     /// Optional reference to link to this submitter
     pub xref: Option<Xref>,
@@ -269,19 +240,14 @@ pub struct Submitter {
     pub phone: Option<String>,
 }
 
-
-
 #[allow(clippy::module_name_repetitions)]
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct SourceData {
     pub(crate) events: Vec<Event>,
     pub agency: Option<String>,
 }
 
-
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 /// Source for genealogy facts
 pub struct Source {
     pub xref: Option<String>,
@@ -291,8 +257,9 @@ pub struct Source {
     pub repo_citations: Vec<RepoCitation>,
 }
 
-#[derive(Default, Debug)]
-#[derive(Serialize, Deserialize)]
-pub struct FamilyLink{ pub xref: Xref, pub link: FamilyLinkType, pub pedigree: Option<Pedigree>}
-
-
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct FamilyLink {
+    pub xref: Xref,
+    pub link: FamilyLinkType,
+    pub pedigree: Option<Pedigree>,
+}

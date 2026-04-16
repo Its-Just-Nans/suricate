@@ -1,11 +1,11 @@
 //! The state machine that parses a char iterator of the gedcom's contents
 use std::{panic, str::Chars};
 
-use super::tokenizer::{Token, Tokenizer};
 use super::GedcomData;
+use super::tokenizer::{Token, Tokenizer};
 use super::types::{
-FamilyLinkType, EventType,   Address, CustomData, Event, Family, FamilyLink, Gender, Header, Individual, Pedigree,
-    Name, RepoCitation, Repository, Source, SourceCitation, Submitter,
+    Address, CustomData, Event, EventType, Family, FamilyLink, FamilyLinkType, Gender, Header,
+    Individual, Name, Pedigree, RepoCitation, Repository, Source, SourceCitation, Submitter,
 };
 
 /// The Gedcom parser that converts the token list into a data structure
@@ -47,27 +47,36 @@ impl<'a> Parser<'a> {
                 let xref = xref.to_string();
                 self.tokenizer.next_token();
                 xref
-            } else if let Token::Tag(tag) = &self.tokenizer.current_token && tag == "HEAD" {
-                     data.header = self.parse_header();
+            } else if let Token::Tag(tag) = &self.tokenizer.current_token
+                && tag == "HEAD"
+            {
+                data.header = self.parse_header();
                 continue;
-            } else if let Token::Tag(tag) = &self.tokenizer.current_token && tag == "TRLR"{
-                 break;
-            
-            }else {
+            } else if let Token::Tag(tag) = &self.tokenizer.current_token
+                && tag == "TRLR"
+            {
+                break;
+            } else {
                 return Err(format!("Unknown token: {:?}", self.tokenizer.current_token));
             };
 
             if let Token::Tag(tag) = &self.tokenizer.current_token {
                 match tag.as_str() {
                     "FAM" => data.families.push(self.parse_family(level, Some(pointer))?),
-                    "INDI" => data.individuals.push(self.parse_individual(level, Some(pointer))?),
-                    "REPO" => data.repositories.push(self.parse_repository(level, Some(pointer))),
+                    "INDI" => data
+                        .individuals
+                        .push(self.parse_individual(level, Some(pointer))?),
+                    "REPO" => data
+                        .repositories
+                        .push(self.parse_repository(level, Some(pointer))),
                     "SOUR" => data.sources.push(self.parse_source(level, Some(pointer))),
-                    "SUBM" => data.submitters.push(self.parse_submitter(level, Some(pointer))?),
+                    "SUBM" => data
+                        .submitters
+                        .push(self.parse_submitter(level, Some(pointer))?),
                     _ => {
                         if self.skip_on_error {
                             self.take_line_value();
-                            continue
+                            continue;
                         }
                         return Err(format!("{} Unhandled tag {}", self.dbg(), tag));
                     }
@@ -167,7 +176,7 @@ impl<'a> Parser<'a> {
                     }
                     "PHON" => submitter.phone = Some(self.take_line_value()),
                     "COMM" => {
-                            self.take_continued_text(1);
+                        self.take_continued_text(1);
                     }
                     a => {
                         println!("{:?}", a);
@@ -176,7 +185,7 @@ impl<'a> Parser<'a> {
                             continue;
                         }
                         return Err(format!("{} Unhandled Submitter Tag: {}", self.dbg(), tag));
-                        }
+                    }
                 },
                 Token::Level(_) => self.tokenizer.next_token(),
                 _ => panic!(
@@ -205,7 +214,9 @@ impl<'a> Parser<'a> {
                     | "CHR" | "CHRA" | "CONF" | "CREM" | "DEAT" | "EMIG" | "FCOM" | "GRAD"
                     | "IMMI" | "NATU" | "ORDN" | "RETI" | "RESI" | "PROB" | "WILL" | "EVEN" => {
                         let tag_clone = tag.clone();
-                        individual.events.push(self.parse_event(tag_clone.as_str(), level + 1));
+                        individual
+                            .events
+                            .push(self.parse_event(tag_clone.as_str(), level + 1));
                     }
                     "FAMC" | "FAMS" => {
                         let tag_clone = tag.clone();
@@ -228,7 +239,9 @@ impl<'a> Parser<'a> {
                 },
                 Token::CustomTag(tag) => {
                     let tag_clone = tag.clone();
-                    individual.custom_data.push(self.parse_custom_tag(tag_clone))
+                    individual
+                        .custom_data
+                        .push(self.parse_custom_tag(tag_clone))
                 }
                 Token::Level(_) => self.tokenizer.next_token(),
                 _ => panic!(
@@ -269,7 +282,7 @@ impl<'a> Parser<'a> {
                     return Err(format!(
                         "Unhandled Family Token: {:?}",
                         self.tokenizer.current_token
-                    ))
+                    ));
                 }
             }
         }
@@ -302,7 +315,9 @@ impl<'a> Parser<'a> {
                     "AGNC" => source.data.agency = Some(self.take_line_value()),
                     "ABBR" => source.abbreviation = Some(self.take_continued_text(level + 1)),
                     "TITL" => source.title = Some(self.take_continued_text(level + 1)),
-                    "REPO" => source.repo_citations.push(self.parse_repo_citation(level + 1)),
+                    "REPO" => source
+                        .repo_citations
+                        .push(self.parse_repo_citation(level + 1)),
                     _ => panic!("{} Unhandled Source Tag: {}", self.dbg(), tag),
                 },
                 Token::Level(_) => self.tokenizer.next_token(),
@@ -365,8 +380,9 @@ impl<'a> Parser<'a> {
                         let form = self.take_line_value();
                         if &form.to_uppercase() != "LINEAGE-LINKED" {
                             println!(
-                                "WARNING: Unrecognized GEDCOM form. Expected LINEAGE-LINKED, found {}"
-                            , form);
+                                "WARNING: Unrecognized GEDCOM form. Expected LINEAGE-LINKED, found {}",
+                                form
+                            );
                         }
                     }
                     _ => panic!("{} Unhandled GEDC Tag: {}", self.dbg(), tag),
@@ -386,7 +402,7 @@ impl<'a> Parser<'a> {
         let xref = self.take_line_value();
         let mut family_link = FamilyLink::default();
         family_link.xref = xref;
-         let link = match tag {
+        let link = match tag {
             "FAMC" => FamilyLinkType::Child,
             "FAMS" => FamilyLinkType::Spouse,
             _ => panic!("Unrecognized family type tag: {}", tag),
@@ -403,9 +419,9 @@ impl<'a> Parser<'a> {
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "PEDI" => {
-                        
-                        family_link.pedigree = Some(Pedigree::try_from(self.take_line_value().as_str()).unwrap());
-                    },
+                        family_link.pedigree =
+                            Some(Pedigree::try_from(self.take_line_value().as_str()).unwrap());
+                    }
                     _ => panic!("{} Unhandled FamilyLink Tag: {}", self.dbg(), tag),
                 },
                 Token::Level(_) => self.tokenizer.next_token(),
@@ -649,4 +665,3 @@ impl<'a> Parser<'a> {
         format!("line {}:", self.tokenizer.line)
     }
 }
-

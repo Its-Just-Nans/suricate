@@ -47,12 +47,6 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    /// Ends the tokenization
-    #[must_use]
-    pub fn done(&self) -> bool {
-        self.current_token == Token::EOF
-    }
-
     /// Loads the next token into state
     pub fn next_token(&mut self) {
         if self.current_char == '\0' {
@@ -147,4 +141,3 @@ impl<'a> Tokenizer<'a> {
         (self.current_char.is_whitespace() || is_zero_width_space) && not_a_newline
     }
 }
-

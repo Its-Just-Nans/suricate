@@ -21,7 +21,7 @@
 
 mod app;
 mod central_panel;
-mod panels;
 mod gedcom;
+mod panels;
 
 pub use app::SuricateApp;

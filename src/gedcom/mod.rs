@@ -1,13 +1,11 @@
-
-pub(crate) mod types;
 pub(crate) mod parser;
 pub(crate) mod tokenizer;
+pub(crate) mod types;
 
-use types::{Header, Submitter, Individual, Family, Repository, Source, Media};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use types::{Family, Header, Individual, Media, Repository, Source, Submitter};
 
-#[derive(Debug, Default)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 /// The data structure representing all the data within a gedcom file
 pub struct GedcomData {
     /// Header containing file metadata
@@ -25,4 +23,3 @@ pub struct GedcomData {
     /// A multimedia asset linked to a fact
     pub multimedia: Vec<Media>,
 }
-

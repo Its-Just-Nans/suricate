@@ -9,6 +9,5 @@ STAE = "STAE"
 [files]
 extend-exclude = [
     "assets/royal92.ged",
-    "rust-gedcom/tests/",
 ]
 
