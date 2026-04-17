@@ -9,15 +9,38 @@ use bladvak::{
 use bladvak::{
     eframe::{
         CreationContext,
-        egui::{self},
+        egui::{self, pos2},
     },
     utils::is_native,
 };
 use ged_io::types::individual::Individual;
+use ged_io::types::family::Family;
 use std::collections::HashMap;
 use std::{fmt::Debug, io::Cursor, path::PathBuf};
 
 use crate::panels::FileInfo;
+use crate::central_panel::build_family_nodes;
+
+#[derive(Clone, serde::Deserialize, serde::Serialize, Debug)]
+pub struct Node {
+    pub id: egui::Id,
+    pub pos: egui::Pos2, // center position in scene space
+    pub size: egui::Vec2,
+    pub title: String,
+    pub selected: bool,
+}
+
+impl Node {
+    pub fn new(id: impl std::hash::Hash, pos: egui::Pos2, title: impl Into<String>) -> Self {
+        Self {
+            id: egui::Id::new(id),
+            pos,
+            size: egui::vec2(180.0, 80.0),
+            title: title.into(),
+            selected: false,
+        }
+    }
+}
 
 /// Data extracted from the file
 #[derive(serde::Deserialize, serde::Serialize, Debug, Default)]
@@ -25,7 +48,7 @@ pub(crate) struct TreeData {
     /// List of individuals
     pub(crate) individuals: HashMap<String, Individual>,
     /// List of families
-    pub(crate) families: HashMap<u64, Vec<u64>>,
+    pub(crate) families: HashMap<String, Family>,
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -33,7 +56,6 @@ pub(crate) struct TreeData {
 #[serde(default)]
 pub struct SuricateApp {
     /// Current scene zoom
-    #[serde(skip)]
     pub(crate) scene_rect: egui::Rect,
     /// Filename
     pub(crate) filename: PathBuf,
@@ -41,15 +63,28 @@ pub struct SuricateApp {
     pub(crate) grid: Grid,
     /// Data
     pub(crate) data: TreeData,
+
+    pub(crate) nodes: Vec<Node>,
+
+    pub(crate) selected: Option<String>,
 }
 
 impl Default for SuricateApp {
     fn default() -> Self {
+        let nodes = vec![
+            Node::new("image_source", pos2(30., 60.), "Image source"),
+            Node::new("color_correct", pos2(240., 40.), "Color correct"),
+            Node::new("blur", pos2(240., 170.), "Blur"),
+            Node::new("mix", pos2(450., 100.), "Mix"),
+            Node::new("output", pos2(640., 100.), "Output"),
+        ];
         Self {
             scene_rect: egui::Rect::NAN,
             filename: PathBuf::new(),
             grid: Grid::default(),
             data: TreeData::default(),
+            nodes,
+            selected: None,
         }
     }
 }
@@ -72,6 +107,9 @@ impl BladvakApp<'_> for SuricateApp {
         ui: &mut egui::Ui,
         func_ui: impl FnOnce(&mut egui::Ui, &mut SuricateApp),
     ) {
+        ui.label("sdfg");
+        ui.label("Selected");
+        ui.label(format!("{:?}", self.selected));
         egui::Frame::central_panel(&ui.ctx().global_style())
             .show(ui, |panel_ui| func_ui(panel_ui, self));
     }
@@ -81,7 +119,7 @@ impl BladvakApp<'_> for SuricateApp {
     }
 
     fn is_side_panel(&self) -> bool {
-        false
+        true
     }
 
     fn is_open_button(&self) -> bool {
@@ -112,6 +150,17 @@ impl BladvakApp<'_> for SuricateApp {
                 (key, f)
             })
             .collect();
+
+        self.data.families = gedcom_data
+            .families
+            .into_iter()
+            .map(|f| {
+                let key = f.xref.clone().unwrap_or("1".to_string());
+                (key, f)
+            })
+            .collect();
+
+        self.nodes = build_family_nodes(&self.data.individuals, &self.data.families);
         Ok(())
     }
 
