@@ -1,3 +1,5 @@
+//! Gedcom parsing
+
 pub(crate) mod parser;
 pub(crate) mod tokenizer;
 pub(crate) mod types;

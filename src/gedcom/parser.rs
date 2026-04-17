@@ -1,4 +1,9 @@
 //! The state machine that parses a char iterator of the gedcom's contents
+
+#![allow(clippy::missing_docs_in_private_items)]
+#![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::unwrap_used)]
+
 use std::{panic, str::Chars};
 
 use super::GedcomData;
@@ -32,19 +37,17 @@ impl<'a> Parser<'a> {
     pub fn parse_record(&mut self) -> ParserError<GedcomData> {
         let mut data = GedcomData::default();
         loop {
-            let level = match self.tokenizer.current_token {
-                Token::Level(n) => n,
-                _ => panic!(
+            let Token::Level(level) = self.tokenizer.current_token else {
+                    return Err(format!(
                     "{} Expected Level, found {:?}",
                     self.dbg(),
-                    self.tokenizer.current_token
-                ),
+                    self.tokenizer.current_token));
             };
 
             self.tokenizer.next_token();
             // println!("{:?}", self.tokenizer.current_token);
             let pointer = if let Token::Pointer(xref) = &self.tokenizer.current_token {
-                let xref = xref.to_string();
+                let xref = xref.clone();
                 self.tokenizer.next_token();
                 xref
             } else if let Token::Tag(tag) = &self.tokenizer.current_token
@@ -80,7 +83,7 @@ impl<'a> Parser<'a> {
                         }
                         return Err(format!("{} Unhandled tag {}", self.dbg(), tag));
                     }
-                };
+                }
             } else if let Token::CustomTag(tag) = &self.tokenizer.current_token {
                 // TODO
                 let tag_clone = tag.clone();
@@ -100,7 +103,7 @@ impl<'a> Parser<'a> {
                     self.tokenizer.current_token
                 );
                 self.tokenizer.next_token();
-            };
+            }
         }
 
         Ok(data)
@@ -134,7 +137,7 @@ impl<'a> Parser<'a> {
                         if let Some(date) = header.date {
                             let mut datetime = String::new();
                             datetime.push_str(&date);
-                            datetime.push_str(" ");
+                            datetime.push(' ');
                             datetime.push_str(&time);
                             header.date = Some(datetime);
                         } else {
@@ -179,7 +182,7 @@ impl<'a> Parser<'a> {
                         self.take_continued_text(1);
                     }
                     a => {
-                        println!("{:?}", a);
+                        println!("{a:?}");
                         if self.skip_on_error {
                             self.take_line_value();
                             continue;
@@ -241,7 +244,7 @@ impl<'a> Parser<'a> {
                     let tag_clone = tag.clone();
                     individual
                         .custom_data
-                        .push(self.parse_custom_tag(tag_clone))
+                        .push(self.parse_custom_tag(tag_clone));
                 }
                 Token::Level(_) => self.tokenizer.next_token(),
                 _ => panic!(
@@ -269,7 +272,7 @@ impl<'a> Parser<'a> {
                     "WIFE" => family.set_individual2(self.take_line_value()),
                     "CHIL" => family.children.push(self.take_line_value()),
                     a => {
-                        println!("{:?}", a);
+                        println!("{a:?}");
                         if self.skip_on_error {
                             self.take_line_value();
                             continue;
@@ -298,18 +301,17 @@ impl<'a> Parser<'a> {
         source.xref = xref;
 
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "DATA" => self.tokenizer.next_token(),
                     "EVEN" => {
                         let events_recorded = self.take_line_value();
                         let mut event = self.parse_event("OTHER", level + 2);
-                        event.event = EventType::SourceData(events_recorded);
+                        event.etype = EventType::SourceData(events_recorded);
                         source.data.events.push(event);
                     }
                     "AGNC" => source.data.agency = Some(self.take_line_value()),
@@ -339,11 +341,10 @@ impl<'a> Parser<'a> {
             address: None,
         };
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "NAME" => repo.name = Some(self.take_line_value()),
@@ -380,8 +381,7 @@ impl<'a> Parser<'a> {
                         let form = self.take_line_value();
                         if &form.to_uppercase() != "LINEAGE-LINKED" {
                             println!(
-                                "WARNING: Unrecognized GEDCOM form. Expected LINEAGE-LINKED, found {}",
-                                form
+                                "WARNING: Unrecognized GEDCOM form. Expected LINEAGE-LINKED, found {form}"
                             );
                         }
                     }
@@ -405,17 +405,16 @@ impl<'a> Parser<'a> {
         let link = match tag {
             "FAMC" => FamilyLinkType::Child,
             "FAMS" => FamilyLinkType::Spouse,
-            _ => panic!("Unrecognized family type tag: {}", tag),
+            _ => panic!("Unrecognized family type tag: {tag}"),
         };
 
         family_link.link = link;
 
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "PEDI" => {
@@ -442,11 +441,10 @@ impl<'a> Parser<'a> {
             call_number: None,
         };
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "CALN" => citation.call_number = Some(self.take_line_value()),
@@ -488,11 +486,10 @@ impl<'a> Parser<'a> {
         name.value = Some(self.take_line_value());
 
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "GIVN" => name.given = Some(self.take_line_value()),
@@ -514,11 +511,10 @@ impl<'a> Parser<'a> {
         self.tokenizer.next_token();
         let mut event = Event::try_from(tag).unwrap();
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "DATE" => event.date = Some(self.take_line_value()),
@@ -547,11 +543,10 @@ impl<'a> Parser<'a> {
         }
 
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "CONT" => {
@@ -575,7 +570,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if &value != "" {
+        if !value.is_empty() {
             address.value = Some(value);
         }
 
@@ -588,11 +583,10 @@ impl<'a> Parser<'a> {
             page: None,
         };
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "PAGE" => citation.page = Some(self.take_line_value()),
@@ -614,20 +608,19 @@ impl<'a> Parser<'a> {
         let mut value = self.take_line_value();
 
         loop {
-            if let Token::Level(cur_level) = self.tokenizer.current_token {
-                if cur_level <= level {
+            if let Token::Level(cur_level) = self.tokenizer.current_token
+                && cur_level <= level {
                     break;
                 }
-            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "CONT" => {
                         value.push('\n');
-                        value.push_str(&self.take_line_value())
+                        value.push_str(&self.take_line_value());
                     }
                     "CONC" => {
                         value.push(' ');
-                        value.push_str(&self.take_line_value())
+                        value.push_str(&self.take_line_value());
                     }
                     _ => panic!("{} Unhandled Continuation Tag: {}", self.dbg(), tag),
                 },
@@ -648,7 +641,7 @@ impl<'a> Parser<'a> {
         self.tokenizer.next_token();
 
         if let Token::LineValue(val) = &self.tokenizer.current_token {
-            value = val.to_string();
+            value = val.clone();
         } else {
             panic!(
                 "{} Expected LineValue, found {:?}",

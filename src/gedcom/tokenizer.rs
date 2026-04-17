@@ -1,4 +1,7 @@
 //! Handles the tokenization of a GEDCOM file
+
+#![allow(clippy::missing_docs_in_private_items)]
+
 use std::str::Chars;
 
 /// The base enum of Token types
@@ -18,7 +21,7 @@ pub enum Token {
     /// A user-defined tag, always begins with an underscore
     CustomTag(String),
     /// End-of-file indicator
-    EOF,
+    Eof,
     /// The initial token value, indicating nothing
     None,
 }
@@ -50,7 +53,7 @@ impl<'a> Tokenizer<'a> {
     /// Loads the next token into state
     pub fn next_token(&mut self) {
         if self.current_char == '\0' {
-            self.current_token = Token::EOF;
+            self.current_token = Token::Eof;
             return;
         }
 
@@ -61,7 +64,7 @@ impl<'a> Tokenizer<'a> {
         if self.current_char == '\n' {
             self.next_char();
 
-            self.current_token = Token::Level(self.extract_number());
+            self.current_token = Token::Level(self.extract_number().unwrap_or(0));
             self.line += 1;
             return;
         }
@@ -98,15 +101,15 @@ impl<'a> Tokenizer<'a> {
         self.current_char = self.chars.next().unwrap_or('\0');
     }
 
-    fn extract_number(&mut self) -> u8 {
+    fn extract_number(&mut self) -> Result<u8, std::num::ParseIntError> {
         self.skip_whitespace();
         let mut digits: Vec<char> = Vec::new();
-        while self.current_char.is_digit(10) {
+        while self.current_char.is_ascii_digit() {
             digits.push(self.current_char);
             self.next_char();
         }
 
-        digits.iter().collect::<String>().parse::<u8>().unwrap()
+        digits.iter().collect::<String>().parse::<u8>()
     }
 
     fn extract_word(&mut self) -> String {

@@ -1,3 +1,8 @@
+//! Types
+
+#![allow(clippy::missing_docs_in_private_items)]
+#![allow(clippy::field_reassign_with_default)]
+
 use serde::{Deserialize, Serialize};
 
 type Xref = String;
@@ -35,7 +40,7 @@ pub enum EventType {
 /// Event fact
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Event {
-    pub event: EventType,
+    pub etype: EventType,
     pub date: Option<String>,
     pub place: Option<String>,
     pub citations: Vec<SourceCitation>,
@@ -54,10 +59,10 @@ impl TryFrom<&str> for Event {
             "MARR" => EventType::Marriage,
             "RESI" => EventType::Residence,
             "OTHER" => EventType::Other,
-            _ => return Err(format!("Unrecognized event tag: {}", value)),
+            _ => return Err(format!("Unrecognized event tag: {value}")),
         };
         let mut event = Event::default();
-        event.event = etype;
+        event.etype = etype;
         Ok(event)
     }
 }
@@ -77,14 +82,14 @@ impl Family {
         match self.individual1 {
             Some(_) => panic!("First individual of family already exists."),
             None => self.individual1 = Some(xref),
-        };
+        }
     }
 
     pub fn set_individual2(&mut self, xref: Xref) {
         match self.individual2 {
             Some(_) => panic!("Second individual of family already exists."),
             None => self.individual2 = Some(xref),
-        };
+        }
     }
 }
 
@@ -172,7 +177,7 @@ impl TryFrom<&str> for Pedigree {
             "birth" => Ok(Pedigree::Birth),
             "foster" => Ok(Pedigree::Foster),
             "sealing" => Ok(Pedigree::Sealing),
-            _ => Err(format!("Unrecognized family link pedigree: {}", value)),
+            _ => Err(format!("Unrecognized family link pedigree: {value}")),
         }
     }
 }
