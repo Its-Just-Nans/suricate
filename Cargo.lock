@@ -1052,6 +1052,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "encoding_rs"
+version = "0.8.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1408,6 +1417,17 @@ dependencies = [
  "futures-task",
  "pin-project-lite",
  "slab",
+]
+
+[[package]]
+name = "ged_io"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "958c935230124a5ed16db05e557933989974b00da5d9609e8c00cda11f867fe0"
+dependencies = [
+ "encoding_rs",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3427,6 +3447,7 @@ name = "suricate"
 version = "0.1.0"
 dependencies = [
  "bladvak",
+ "ged_io",
  "serde",
 ]
 

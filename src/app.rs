@@ -15,6 +15,7 @@ use bladvak::{
 };
 use std::collections::HashMap;
 use std::{fmt::Debug, io::Cursor, path::PathBuf};
+use ged_io::types::individual::Individual;
 
 use crate::panels::FileInfo;
 
@@ -22,7 +23,7 @@ use crate::panels::FileInfo;
 #[derive(serde::Deserialize, serde::Serialize, Debug, Default)]
 pub(crate) struct TreeData {
     /// List of individuals
-    pub(crate) individuals: HashMap<String, crate::gedcom::types::Individual>,
+    pub(crate) individuals: HashMap<String, Individual>,
     /// List of families
     pub(crate) families: HashMap<u64, Vec<u64>>,
 }
@@ -88,16 +89,18 @@ impl BladvakApp<'_> for SuricateApp {
     }
 
     fn handle_file(&mut self, file: File) -> Result<(), AppError> {
-        use crate::gedcom::parser::Parser;
+        use ged_io::Gedcom;
 
         // the parser takes the gedcom file contents as a chars iterator
         let gedcom_source = String::from_utf8(file.data)?;
-        let mut parser = Parser::new(gedcom_source.chars());
-        let gedcom_data = parser.parse_record()?;
+        let mut gedcom = Gedcom::new(gedcom_source.chars()).map_err(|e| format!("gedcom error: {e}"))?;
+        let gedcom_data = gedcom.parse_data().map_err(|e| format!("gedcom error: {e}"))?;
+
+        // Display file statistics
+        gedcom_data.stats();
         self.filename = file.path;
 
         // output some stats on the gedcom contents
-        println!("{gedcom_data:?}");
         self.data.individuals = gedcom_data
             .individuals
             .into_iter()
