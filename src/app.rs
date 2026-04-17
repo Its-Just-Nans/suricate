@@ -13,9 +13,9 @@ use bladvak::{
     },
     utils::is_native,
 };
+use ged_io::types::individual::Individual;
 use std::collections::HashMap;
 use std::{fmt::Debug, io::Cursor, path::PathBuf};
-use ged_io::types::individual::Individual;
 
 use crate::panels::FileInfo;
 
@@ -93,8 +93,11 @@ impl BladvakApp<'_> for SuricateApp {
 
         // the parser takes the gedcom file contents as a chars iterator
         let gedcom_source = String::from_utf8(file.data)?;
-        let mut gedcom = Gedcom::new(gedcom_source.chars()).map_err(|e| format!("gedcom error: {e}"))?;
-        let gedcom_data = gedcom.parse_data().map_err(|e| format!("gedcom error: {e}"))?;
+        let mut gedcom =
+            Gedcom::new(gedcom_source.chars()).map_err(|e| format!("gedcom error: {e}"))?;
+        let gedcom_data = gedcom
+            .parse_data()
+            .map_err(|e| format!("gedcom error: {e}"))?;
 
         // Display file statistics
         gedcom_data.stats();
