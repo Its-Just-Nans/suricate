@@ -38,10 +38,11 @@ impl<'a> Parser<'a> {
         let mut data = GedcomData::default();
         loop {
             let Token::Level(level) = self.tokenizer.current_token else {
-                    return Err(format!(
+                return Err(format!(
                     "{} Expected Level, found {:?}",
                     self.dbg(),
-                    self.tokenizer.current_token));
+                    self.tokenizer.current_token
+                ));
             };
 
             self.tokenizer.next_token();
@@ -302,9 +303,10 @@ impl<'a> Parser<'a> {
 
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "DATA" => self.tokenizer.next_token(),
@@ -342,9 +344,10 @@ impl<'a> Parser<'a> {
         };
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "NAME" => repo.name = Some(self.take_line_value()),
@@ -412,9 +415,10 @@ impl<'a> Parser<'a> {
 
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "PEDI" => {
@@ -442,9 +446,10 @@ impl<'a> Parser<'a> {
         };
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "CALN" => citation.call_number = Some(self.take_line_value()),
@@ -487,9 +492,10 @@ impl<'a> Parser<'a> {
 
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "GIVN" => name.given = Some(self.take_line_value()),
@@ -512,9 +518,10 @@ impl<'a> Parser<'a> {
         let mut event = Event::try_from(tag).unwrap();
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "DATE" => event.date = Some(self.take_line_value()),
@@ -544,9 +551,10 @@ impl<'a> Parser<'a> {
 
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "CONT" => {
@@ -584,9 +592,10 @@ impl<'a> Parser<'a> {
         };
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "PAGE" => citation.page = Some(self.take_line_value()),
@@ -609,9 +618,10 @@ impl<'a> Parser<'a> {
 
         loop {
             if let Token::Level(cur_level) = self.tokenizer.current_token
-                && cur_level <= level {
-                    break;
-                }
+                && cur_level <= level
+            {
+                break;
+            }
             match &self.tokenizer.current_token {
                 Token::Tag(tag) => match tag.as_str() {
                     "CONT" => {
