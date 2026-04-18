@@ -14,7 +14,7 @@ A simple viewer.
 cargo install suricate --locked
 
 # usage as CLI
-suricate path/to/file.png # an image
+suricate path/to/file.ged
 # or
 suricate
 ```
