@@ -13,24 +13,32 @@ use bladvak::{
     },
     utils::is_native,
 };
-use ged_io::types::individual::Individual;
 use ged_io::types::family::Family;
+use ged_io::types::individual::Individual;
 use std::collections::HashMap;
 use std::{fmt::Debug, io::Cursor, path::PathBuf};
 
-use crate::panels::FileInfo;
 use crate::central_panel::build_family_nodes;
+use crate::panels::FileInfo;
+use crate::windows::WindowsData;
 
+/// Node to render
 #[derive(Clone, serde::Deserialize, serde::Serialize, Debug)]
 pub struct Node {
+    /// Node id
     pub id: egui::Id,
+    /// Node position
     pub pos: egui::Pos2, // center position in scene space
+    /// Node size
     pub size: egui::Vec2,
+    /// Node title
     pub title: String,
+    /// Is node selected
     pub selected: bool,
 }
 
 impl Node {
+    /// Create a new Node
     pub fn new(id: impl std::hash::Hash, pos: egui::Pos2, title: impl Into<String>) -> Self {
         Self {
             id: egui::Id::new(id),
@@ -63,10 +71,12 @@ pub struct SuricateApp {
     pub(crate) grid: Grid,
     /// Data
     pub(crate) data: TreeData,
-
+    /// Node to render
     pub(crate) nodes: Vec<Node>,
-
+    /// Selected Node
     pub(crate) selected: Option<String>,
+    /// Windows Data
+    pub(crate) windows_data: WindowsData,
 }
 
 impl Default for SuricateApp {
@@ -85,6 +95,7 @@ impl Default for SuricateApp {
             data: TreeData::default(),
             nodes,
             selected: None,
+            windows_data: WindowsData::new(),
         }
     }
 }
@@ -98,6 +109,11 @@ impl SuricateApp {
         let cursor = Cursor::new(ASSET);
         let filename = PathBuf::from("royal92.ged");
         (filename, cursor)
+    }
+
+    /// Mark data as stale
+    pub(crate) fn stale(&mut self) {
+        self.windows_data.reset();
     }
 }
 
@@ -140,7 +156,7 @@ impl BladvakApp<'_> for SuricateApp {
         // Display file statistics
         gedcom_data.stats();
         self.filename = file.path;
-
+        self.stale();
         // output some stats on the gedcom contents
         self.data.individuals = gedcom_data
             .individuals
@@ -165,6 +181,10 @@ impl BladvakApp<'_> for SuricateApp {
     }
 
     fn top_panel(&mut self, ui: &mut egui::Ui, _error_manager: &mut ErrorManager) {
+        ui.menu_button("Windows", |ui| {
+            self.windows_data.ui_top_bar(ui);
+        });
+        ui.separator();
         ui.label(format!("Filename: {}", self.filename.display()));
     }
 
@@ -174,6 +194,7 @@ impl BladvakApp<'_> for SuricateApp {
 
     fn central_panel(&mut self, ui: &mut egui::Ui, error_manager: &mut ErrorManager) {
         self.app_central_panel(ui, error_manager);
+        self.ui_windows(ui, error_manager);
     }
 
     fn name() -> String {

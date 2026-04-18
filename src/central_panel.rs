@@ -1,10 +1,11 @@
-//! Central panel
-use bladvak::eframe::egui::{self, Align, Color32, Layout, Pos2, Rect, Sense, UiBuilder};
+//! Central panel UI
+
+use bladvak::eframe::egui::{self, Pos2, Sense};
 
 use crate::SuricateApp;
 use crate::app::Node;
-use ged_io::types::individual::Individual;
 use ged_io::types::family::Family;
+use ged_io::types::individual::Individual;
 use ged_io::types::individual::family_link::FamilyLinkType;
 
 impl SuricateApp {
@@ -60,7 +61,7 @@ impl SuricateApp {
                             // Node content goes here
                             ui.label("Input");
                             ui.label("Output");
-                            ui.label(format!("{:?}", node));
+                            ui.label(format!("{node:?}"));
                         });
                     let response = ui.interact(
                         node_rect,
@@ -78,32 +79,31 @@ impl SuricateApp {
                         if node.selected {
                             self.selected = Some(node.title.clone());
                         }
-                    } else {
-                        if let Some(nn) = &self.selected {
-                            if *nn != node.title {
-                                node.selected = false;
-                            }
-                        } else {
+                    } else if let Some(nn) = &self.selected {
+                        if *nn != node.title {
                             node.selected = false;
                         }
+                    } else {
+                        node.selected = false;
                     }
                 }
             });
     }
-
 }
 
-
-
-
 use std::collections::HashMap;
+use std::collections::HashSet;
 
+/// Node width
 const NODE_W: f32 = 180.0;
+/// Node height
 const NODE_H: f32 = 60.0;
-const H_GAP: f32 = 30.0;  // horizontal gap between nodes
-const V_GAP: f32 = 80.0;  // vertical gap between generations
+/// horizontal gap between nodes
+const H_GAP: f32 = 30.0;
+/// vertical gap between generations
+const V_GAP: f32 = 80.0;
 
-
+/// Build the tree
 pub fn build_family_nodes(
     individuals: &HashMap<String, Individual>,
     families: &HashMap<String, Family>,
@@ -112,11 +112,13 @@ pub fn build_family_nodes(
     let mut placed: HashMap<String, Pos2> = HashMap::new();
 
     // 1. Find root individuals: those who appear only as Spouse, never as Child
-    let children_xrefs: std::collections::HashSet<String> = individuals
+    let children_xrefs: HashSet<String> = individuals
         .values()
         .filter_map(|ind| {
-            ind.families.iter().find(|fl| fl.family_link_type == FamilyLinkType::Child)
-                .map(|_| ind.xref.clone().unwrap())
+            ind.families
+                .iter()
+                .find(|fl| fl.family_link_type == FamilyLinkType::Child)
+                .map(|_| ind.xref.clone().unwrap_or(String::new()))
         })
         .collect();
 
@@ -130,13 +132,10 @@ pub fn build_family_nodes(
 
     // 2. Place generation by generation using BFS
     let mut generation: Vec<Vec<String>> = Vec::new();
-    let mut visited_fams: std::collections::HashSet<String> = Default::default();
+    let mut visited_fams: HashSet<String> = HashSet::default();
 
     // Generation 0: root individuals grouped by their spouse family
-    let root_xrefs: Vec<String> = roots
-        .iter()
-        .filter_map(|i| i.xref.clone())
-        .collect();
+    let root_xrefs: Vec<String> = roots.iter().filter_map(|i| i.xref.clone()).collect();
     generation.push(root_xrefs.clone());
 
     // Walk down through families
@@ -146,8 +145,12 @@ pub fn build_family_nodes(
         for xref in &current_gen {
             if let Some(ind) = individuals.get(xref) {
                 for fl in &ind.families {
-                    if fl.family_link_type != FamilyLinkType::Spouse { continue; }
-                    if visited_fams.contains(&fl.xref) { continue; }
+                    if fl.family_link_type != FamilyLinkType::Spouse {
+                        continue;
+                    }
+                    if visited_fams.contains(&fl.xref) {
+                        continue;
+                    }
                     visited_fams.insert(fl.xref.clone());
 
                     if let Some(fam) = families.get(&fl.xref) {
@@ -160,19 +163,24 @@ pub fn build_family_nodes(
                 }
             }
         }
-        if next_gen.is_empty() { break; }
+        if next_gen.is_empty() {
+            break;
+        }
         generation.push(next_gen.clone());
         current_gen = next_gen;
     }
 
     // 3. Assign positions: center each generation horizontally
     for (gen_idx, members) in generation.iter().enumerate() {
-        let total_w = members.len() as f32 * NODE_W
-            + (members.len().saturating_sub(1)) as f32 * H_GAP;
+        let members_len = members.len();
+        #[allow(clippy::cast_precision_loss)]
+        let total_w = members_len as f32 * NODE_W + (members_len.saturating_sub(1)) as f32 * H_GAP;
         let start_x = -total_w / 2.0;
+        #[allow(clippy::cast_precision_loss)]
         let y = gen_idx as f32 * (NODE_H + V_GAP);
 
         for (i, xref) in members.iter().enumerate() {
+            #[allow(clippy::cast_precision_loss)]
             let x = start_x + i as f32 * (NODE_W + H_GAP);
             let pos = Pos2::new(x, y);
             placed.insert(xref.clone(), pos);
@@ -180,10 +188,18 @@ pub fn build_family_nodes(
             let label = individuals
                 .get(xref)
                 .and_then(|ind| ind.name.as_ref())
-                .map(|n| n.value.clone().unwrap()) // adapt to your Name type
-                .unwrap_or_else(|| xref.clone());
+                .map_or_else(
+                    || xref.clone(),
+                    |n| n.value.clone().unwrap_or(String::new()),
+                );
 
-            nodes.push(Node { id: egui::Id::new(xref), pos, size: egui::vec2(180.0, 80.0), title: xref.clone(), selected: false});
+            nodes.push(Node {
+                id: egui::Id::new(xref),
+                pos,
+                size: egui::vec2(180.0, 80.0),
+                title: label,
+                selected: false,
+            });
         }
     }
 
@@ -198,13 +214,12 @@ pub fn build_family_nodes(
             if let (Some(pa), Some(pb)) = (placed.get(a), placed.get(b)) {
                 // If they ended up on the same row, nudge them adjacent
                 if (pa.y - pb.y).abs() < 1.0 {
-                    let mid_x = (pa.x + pb.x) / 2.0;
+                    let mid_x = f32::midpoint(pa.x, pb.x);
                     if let Some(node) = nodes.iter_mut().find(|n| n.id == a_id) {
-
-                        node.pos.x = mid_x - (NODE_W + H_GAP) / 2.0;
+                        node.pos.x = mid_x - f32::midpoint(NODE_W, H_GAP);
                     }
                     if let Some(node) = nodes.iter_mut().find(|n| n.id == b_id) {
-                        node.pos.x = mid_x + (NODE_W + H_GAP) / 2.0;
+                        node.pos.x = mid_x + f32::midpoint(NODE_W, H_GAP);
                     }
                 }
             }
