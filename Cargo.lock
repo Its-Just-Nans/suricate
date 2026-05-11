@@ -1421,9 +1421,9 @@ dependencies = [
 
 [[package]]
 name = "ged_io"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "958c935230124a5ed16db05e557933989974b00da5d9609e8c00cda11f867fe0"
+checksum = "6ea7d1fa57ea16ba1dfcdad3547e9bb974635113e196e2d82a614304876f29d5"
 dependencies = [
  "encoding_rs",
  "serde",
