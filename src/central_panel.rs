@@ -59,8 +59,6 @@ impl SuricateApp {
                             });
                             ui.separator();
                             // Node content goes here
-                            ui.label("Input");
-                            ui.label("Output");
                             ui.label(format!("{node:?}"));
                         });
                     let response = ui.interact(
@@ -190,7 +188,7 @@ pub fn build_family_nodes(
                 .and_then(|ind| ind.name.as_ref())
                 .map_or_else(
                     || xref.clone(),
-                    |n| n.value.clone().unwrap_or(String::new()),
+                    |name| name.full_name().clone().unwrap_or(String::new()),
                 );
 
             nodes.push(Node {
