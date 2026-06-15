@@ -37,8 +37,27 @@ impl WindowsData {
 impl SuricateApp {
     /// Display windows
     pub(crate) fn ui_windows(&mut self, ui: &mut egui::Ui, error_manager: &mut ErrorManager) {
-        self.windows_data
-            .search_table
-            .ui(&self.data, ui, error_manager);
+        let old_selection = self.selected.clone();
+        if let Some(user_selected) =
+            self.windows_data
+                .search_table
+                .ui(&self.data, ui, error_manager)
+        {
+            if let Some(node) = self
+                .nodes
+                .iter_mut()
+                .find(|one_node| one_node.xref == user_selected)
+            {
+                node.selected = true;
+            }
+            self.selected = Some(user_selected);
+        } else if let Some(old_selected) = old_selection
+            && let Some(node) = self
+                .nodes
+                .iter_mut()
+                .find(|one_node| one_node.xref == old_selected)
+        {
+            node.selected = true;
+        }
     }
 }

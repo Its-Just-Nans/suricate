@@ -37,22 +37,36 @@ impl SearchTable {
     }
 
     /// Show the ui
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn ui(
         &mut self,
         data: &TreeData,
         ui: &mut egui::Ui,
         _error_manager: &mut ErrorManager,
-    ) {
+    ) -> Option<String> {
         if self.is_open {
+            let mut clicked = None;
             let mut is_open = self.is_open;
             egui::Window::new("Search table")
                 .open(&mut is_open)
-                .vscroll(true)
                 .show(ui.ctx(), |ui| {
                     ui.text_edit_singleline(&mut self.searching);
                     let row_height = 18.0;
-                    let rows: Vec<&Individual> =
-                        data.individuals.values().filter(|_u| true).collect();
+                    let rows: Vec<&Individual> = data
+                        .individuals
+                        .values()
+                        .filter(|indi| {
+                            if let Some(name) = &indi.name
+                                && let Some(full_name) = &name.full_name()
+                            {
+                                full_name
+                                    .to_lowercase()
+                                    .contains(&self.searching.to_lowercase())
+                            } else {
+                                false
+                            }
+                        })
+                        .collect();
                     let num_rows = rows.len();
                     let available_height = ui.available_height();
                     let table = TableBuilder::new(ui)
@@ -90,9 +104,6 @@ impl SearchTable {
                                 ui.strong("Clipped text");
                             });
                             header.col(|ui| {
-                                ui.strong("Expanding content");
-                            });
-                            header.col(|ui| {
                                 ui.strong("Interaction");
                             });
                             header.col(|ui| {
@@ -123,21 +134,30 @@ impl SearchTable {
                                         }
                                     });
                                     row.col(|ui| {
-                                        ui.label(format!("{row_data:?}"));
-                                    });
-                                    row.col(|ui| {
                                         let mut checked = false;
-                                        ui.checkbox(&mut checked, "Click me");
+                                        if ui.checkbox(&mut checked, "Click me").clicked() {
+                                            clicked.clone_from(&row_data.xref);
+                                        }
                                     });
                                     row.col(|ui| {
                                         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
-                                        ui.label("Normal row");
+                                        let indi = row_data;
+                                        let name = if let Some(name) = &indi.name
+                                            && let Some(full_name) = &name.full_name()
+                                        {
+                                            full_name.clone()
+                                        } else {
+                                            "No name".to_string()
+                                        };
+                                        ui.label(name);
                                     });
                                 },
                             );
                         });
                 });
             self.is_open = is_open;
+            return clicked;
         }
+        None
     }
 }
