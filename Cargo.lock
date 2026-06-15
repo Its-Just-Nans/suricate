@@ -3447,6 +3447,7 @@ name = "suricate"
 version = "0.1.1"
 dependencies = [
  "bladvak",
+ "encoding_rs",
  "ged_io",
  "serde",
 ]
