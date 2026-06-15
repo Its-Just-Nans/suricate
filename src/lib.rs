@@ -1,4 +1,10 @@
-//! Suricate
+//! Suricate is a gedcom viewer made with [bladvak](https://github.com/Its-Just-Nans/bladvak) (egui)
+//!
+//! ```sh
+//! cargo install suricate --locked
+//!
+//! suricate path/to/file.ged
+//! ```
 
 #![warn(clippy::all, rust_2018_idioms)]
 #![deny(
