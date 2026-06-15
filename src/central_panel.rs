@@ -76,6 +76,8 @@ impl SuricateApp {
                         node.selected = !node.selected;
                         if node.selected {
                             self.selected = Some(node.title.clone());
+                        } else {
+                            self.selected = None;
                         }
                     } else if let Some(nn) = &self.selected {
                         if *nn != node.title {
