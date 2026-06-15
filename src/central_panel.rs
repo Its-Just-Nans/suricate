@@ -49,17 +49,27 @@ impl SuricateApp {
                         ))
                         .corner_radius(6.0)
                         .show(node_ui, |ui| {
+                            let name = if let Some(indi) = self.data.individuals.get(&node.xref) {
+                                if let Some(name) = &indi.name
+                                    && let Some(full_name) = &name.full_name()
+                                {
+                                    full_name.clone()
+                                } else {
+                                    "No name".to_string()
+                                }
+                            } else {
+                                "Individual not found".to_string()
+                            };
                             // Title bar
                             ui.horizontal(|ui| {
                                 ui.label(
-                                    egui::RichText::new(&node.title)
+                                    egui::RichText::new(&name)
                                         .color(egui::Color32::WHITE)
                                         .strong(),
                                 );
                             });
                             ui.separator();
                             // Node content goes here
-                            ui.label(format!("{node:?}"));
                         });
                     let response = ui.interact(
                         node_rect,
@@ -75,12 +85,12 @@ impl SuricateApp {
                     if response.clicked() {
                         node.selected = !node.selected;
                         if node.selected {
-                            self.selected = Some(node.title.clone());
+                            self.selected = Some(node.xref.clone());
                         } else {
                             self.selected = None;
                         }
                     } else if let Some(nn) = &self.selected {
-                        if *nn != node.title {
+                        if *nn != node.xref {
                             node.selected = false;
                         }
                     } else {
@@ -185,19 +195,11 @@ pub fn build_family_nodes(
             let pos = Pos2::new(x, y);
             placed.insert(xref.clone(), pos);
 
-            let label = individuals
-                .get(xref)
-                .and_then(|ind| ind.name.as_ref())
-                .map_or_else(
-                    || xref.clone(),
-                    |name| name.full_name().clone().unwrap_or(String::new()),
-                );
-
             nodes.push(Node {
                 id: egui::Id::new(xref),
                 pos,
                 size: egui::vec2(180.0, 80.0),
-                title: label,
+                xref: xref.clone(),
                 selected: false,
             });
         }

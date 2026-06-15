@@ -31,20 +31,20 @@ pub struct Node {
     pub pos: egui::Pos2, // center position in scene space
     /// Node size
     pub size: egui::Vec2,
-    /// Node title
-    pub title: String,
+    /// Xref
+    pub xref: String,
     /// Is node selected
     pub selected: bool,
 }
 
 impl Node {
     /// Create a new Node
-    pub fn new(id: impl std::hash::Hash, pos: egui::Pos2, title: impl Into<String>) -> Self {
+    pub fn new(id: impl std::hash::Hash, pos: egui::Pos2, xref: impl Into<String>) -> Self {
         Self {
             id: egui::Id::new(id),
             pos,
             size: egui::vec2(180.0, 80.0),
-            title: title.into(),
+            xref: xref.into(),
             selected: false,
         }
     }
@@ -123,11 +123,17 @@ impl BladvakApp<'_> for SuricateApp {
         ui: &mut egui::Ui,
         func_ui: impl FnOnce(&mut egui::Ui, &mut SuricateApp),
     ) {
-        ui.label("sdfg");
-        ui.label("Selected");
-        ui.label(format!("{:?}", self.selected));
-        egui::Frame::central_panel(&ui.ctx().global_style())
-            .show(ui, |panel_ui| func_ui(panel_ui, self));
+        egui::Frame::central_panel(&ui.ctx().global_style()).show(ui, |panel_ui| {
+            egui::ScrollArea::both().show(panel_ui, |ui| {
+                ui.label("Selected");
+                if let Some(xref) = &self.selected
+                    && let Some(indi) = self.data.individuals.get(xref)
+                {
+                    ui.label(format!("{indi:?}"));
+                }
+            });
+            func_ui(panel_ui, self);
+        });
     }
 
     fn panel_list(&self) -> Vec<Box<dyn bladvak::app::BladvakPanel<App = Self>>> {
