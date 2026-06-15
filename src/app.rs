@@ -151,11 +151,12 @@ impl BladvakApp<'_> for SuricateApp {
     fn handle_file(&mut self, file: File) -> Result<(), AppError> {
         use encoding_rs::mem::decode_latin1;
         use ged_io::Gedcom;
+        use std::borrow::Cow;
 
         // the parser takes the gedcom file contents as a chars iterator
         let gedcom_source = match std::str::from_utf8(&file.data) {
-            Ok(s) => s,
-            Err(_e) => &decode_latin1(&file.data).to_string(),
+            Ok(s) => Cow::Borrowed(s),
+            Err(_e) => decode_latin1(&file.data),
         };
         let mut gedcom =
             Gedcom::new(gedcom_source.chars()).map_err(|e| format!("gedcom error: {e}"))?;
