@@ -7,10 +7,7 @@ use bladvak::{
     utils::grid::Grid,
 };
 use bladvak::{
-    eframe::{
-        CreationContext,
-        egui::{self, pos2},
-    },
+    eframe::{CreationContext, egui},
     utils::is_native,
 };
 use ged_io::types::family::Family;
@@ -22,6 +19,15 @@ use crate::central_panel::build_family_nodes;
 use crate::panels::FileInfo;
 use crate::windows::WindowsData;
 
+/// Data associated to a node
+#[derive(Clone, serde::Deserialize, serde::Serialize, Debug)]
+pub struct NodeData {
+    /// Xref of the node
+    pub(crate) xref: String,
+    /// Name of the individual
+    pub(crate) name: String,
+}
+
 /// Node to render
 #[derive(Clone, serde::Deserialize, serde::Serialize, Debug)]
 pub struct Node {
@@ -32,22 +38,9 @@ pub struct Node {
     /// Node size
     pub size: egui::Vec2,
     /// Xref
-    pub xref: String,
+    pub data: NodeData,
     /// Is node selected
     pub selected: bool,
-}
-
-impl Node {
-    /// Create a new Node
-    pub fn new(id: impl std::hash::Hash, pos: egui::Pos2, xref: impl Into<String>) -> Self {
-        Self {
-            id: egui::Id::new(id),
-            pos,
-            size: egui::vec2(180.0, 80.0),
-            xref: xref.into(),
-            selected: false,
-        }
-    }
 }
 
 /// Data extracted from the file
@@ -81,13 +74,7 @@ pub struct SuricateApp {
 
 impl Default for SuricateApp {
     fn default() -> Self {
-        let nodes = vec![
-            Node::new("image_source", pos2(30., 60.), "Image source"),
-            Node::new("color_correct", pos2(240., 40.), "Color correct"),
-            Node::new("blur", pos2(240., 170.), "Blur"),
-            Node::new("mix", pos2(450., 100.), "Mix"),
-            Node::new("output", pos2(640., 100.), "Output"),
-        ];
+        let nodes = vec![];
         Self {
             scene_rect: egui::Rect::NAN,
             filename: PathBuf::new(),

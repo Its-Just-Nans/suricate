@@ -4,6 +4,7 @@ use bladvak::eframe::egui::{self, Pos2, Sense};
 
 use crate::SuricateApp;
 use crate::app::Node;
+use crate::app::NodeData;
 use ged_io::types::family::Family;
 use ged_io::types::individual::Individual;
 use ged_io::types::individual::family_link::FamilyLinkType;
@@ -49,17 +50,18 @@ impl SuricateApp {
                         ))
                         .corner_radius(6.0)
                         .show(node_ui, |ui| {
-                            let name = if let Some(indi) = self.data.individuals.get(&node.xref) {
-                                if let Some(name) = &indi.name
-                                    && let Some(full_name) = &name.full_name()
-                                {
-                                    full_name.clone()
+                            let name =
+                                if let Some(indi) = self.data.individuals.get(&node.data.xref) {
+                                    if let Some(name) = &indi.name
+                                        && let Some(full_name) = &name.full_name()
+                                    {
+                                        full_name.clone()
+                                    } else {
+                                        "No name".to_string()
+                                    }
                                 } else {
-                                    "No name".to_string()
-                                }
-                            } else {
-                                "Individual not found".to_string()
-                            };
+                                    "Individual not found".to_string()
+                                };
                             // Title bar
                             ui.horizontal(|ui| {
                                 ui.label(
@@ -85,12 +87,12 @@ impl SuricateApp {
                     if response.clicked() {
                         node.selected = !node.selected;
                         if node.selected {
-                            self.selected = Some(node.xref.clone());
+                            self.selected = Some(node.data.xref.clone());
                         } else {
                             self.selected = None;
                         }
                     } else if let Some(nn) = &self.selected {
-                        if *nn != node.xref {
+                        if *nn != node.data.xref {
                             node.selected = false;
                         }
                     } else {
@@ -195,11 +197,19 @@ pub fn build_family_nodes(
             let pos = Pos2::new(x, y);
             placed.insert(xref.clone(), pos);
 
+            let name = individuals
+                .get(xref)
+                .and_then(Individual::full_name)
+                .unwrap_or_default();
+
             nodes.push(Node {
                 id: egui::Id::new(xref),
                 pos,
                 size: egui::vec2(180.0, 80.0),
-                xref: xref.clone(),
+                data: NodeData {
+                    xref: xref.clone(),
+                    name,
+                },
                 selected: false,
             });
         }
