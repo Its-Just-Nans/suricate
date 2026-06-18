@@ -112,12 +112,7 @@ impl BladvakApp<'_> for SuricateApp {
     ) {
         egui::Frame::central_panel(&ui.ctx().global_style()).show(ui, |panel_ui| {
             egui::ScrollArea::both().show(panel_ui, |ui| {
-                ui.label("Selected");
-                if let Some(xref) = &self.selected
-                    && let Some(indi) = self.data.individuals.get(xref)
-                {
-                    ui.label(format!("{indi:?}"));
-                }
+                self.ui_side_panel(ui);
             });
             func_ui(panel_ui, self);
         });
@@ -234,6 +229,31 @@ impl BladvakApp<'_> for SuricateApp {
             Ok(saved_state)
         } else {
             Ok(saved_state)
+        }
+    }
+}
+
+impl SuricateApp {
+    /// Side panel showing current selection
+    fn ui_side_panel(&mut self, ui: &mut egui::Ui) {
+        ui.label("Selected");
+        if let Some(xref) = &self.selected
+            && let Some(indi) = self.data.individuals.get(xref)
+        {
+            ui.label(format!("{indi}")).on_hover_ui(|ui| {
+                ui.label(format!("{indi:#?}"));
+            });
+            for one_family in &indi.families {
+                ui.separator();
+                let resp = if let Some(family) = self.data.families.get(&one_family.xref) {
+                    ui.label(format!("{family}"))
+                } else {
+                    ui.label("Family not found")
+                };
+                resp.on_hover_ui(|ui| {
+                    ui.label(format!("{one_family:#?}"));
+                });
+            }
         }
     }
 }

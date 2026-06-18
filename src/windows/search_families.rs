@@ -1,0 +1,153 @@
+//! Search Table
+
+use bladvak::eframe::egui;
+use bladvak::egui_extras::{Column, TableBuilder};
+use bladvak::errors::ErrorManager;
+use ged_io::types::family::Family;
+
+use crate::app::TreeData;
+
+/// `SearchFamilies` data
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
+pub(crate) struct SearchFamilies {
+    /// is open
+    pub(crate) is_open: bool,
+    /// search field
+    searching: String,
+    /// selected row
+    selected: Option<usize>,
+    /// reverse the table
+    reversed: bool,
+}
+
+impl SearchFamilies {
+    /// Create empty `SearchFamilies`
+    pub(crate) fn new() -> Self {
+        Self {
+            is_open: false,
+            searching: String::new(),
+            selected: None,
+            reversed: false,
+        }
+    }
+
+    /// reset data
+    pub(crate) fn reset(&mut self) {
+        self.searching.clear();
+    }
+
+    /// Show the ui
+    #[allow(clippy::too_many_lines)]
+    pub(crate) fn ui(
+        &mut self,
+        data: &TreeData,
+        ui: &mut egui::Ui,
+        _error_manager: &mut ErrorManager,
+    ) -> Option<String> {
+        if self.is_open {
+            let mut clicked = None;
+            let mut is_open = self.is_open;
+            egui::Window::new("Search table")
+                .open(&mut is_open)
+                .show(ui.ctx(), |ui| {
+                    ui.text_edit_singleline(&mut self.searching);
+                    let row_height = 18.0;
+                    let rows: Vec<&Family> = data
+                        .families
+                        .values()
+                        .filter(|family| {
+                            if let Some(xref) = &family.xref
+                                && xref.to_lowercase().contains(&self.searching.to_lowercase())
+                            {
+                                true
+                            } else {
+                                false
+                            }
+                        })
+                        .collect();
+                    let num_rows = rows.len();
+                    let available_height = ui.available_height();
+                    let table = TableBuilder::new(ui)
+                        .striped(true)
+                        //.resizable(self.resizable)
+                        .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                        .column(Column::auto())
+                        .column(
+                            Column::remainder()
+                                .at_least(40.0)
+                                .clip(true)
+                                .resizable(true),
+                        )
+                        .column(Column::auto())
+                        .column(Column::remainder())
+                        .column(Column::remainder())
+                        .min_scrolled_height(0.0)
+                        .max_scroll_height(available_height);
+                    table
+                        .header(20.0, |mut header| {
+                            header.col(|ui| {
+                                egui::Sides::new().show(
+                                    ui,
+                                    |ui| {
+                                        ui.strong("Row");
+                                    },
+                                    |ui| {
+                                        self.reversed ^= ui
+                                            .button(if self.reversed { "⬆" } else { "⬇" })
+                                            .clicked();
+                                    },
+                                );
+                            });
+                            header.col(|ui| {
+                                ui.strong("Clipped text");
+                            });
+                            header.col(|ui| {
+                                ui.strong("Interaction");
+                            });
+                            header.col(|ui| {
+                                ui.strong("Content");
+                            });
+                        })
+                        .body(|body| {
+                            body.heterogeneous_rows(
+                                (0..num_rows).map(|_x| row_height),
+                                |mut row| {
+                                    let row_index = if self.reversed {
+                                        num_rows - 1 - row.index()
+                                    } else {
+                                        row.index()
+                                    };
+                                    let row_data = rows[row_index];
+                                    if let Some(selected) = self.selected {
+                                        row.set_selected(selected == row_index);
+                                    }
+                                    //row.set_overline(self.overline && row_index % 7 == 3);
+
+                                    row.col(|ui| {
+                                        ui.label(row_index.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        if let Some(xref) = &row_data.xref {
+                                            ui.label(xref);
+                                        }
+                                    });
+                                    row.col(|ui| {
+                                        let mut checked = false;
+                                        if ui.checkbox(&mut checked, "Click me").clicked() {
+                                            clicked.clone_from(&row_data.xref);
+                                        }
+                                    });
+                                    row.col(|ui| {
+                                        ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                                        ui.label("");
+                                    });
+                                },
+                            );
+                        });
+                });
+            self.is_open = is_open;
+            return clicked;
+        }
+        None
+    }
+}
