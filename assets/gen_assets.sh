@@ -24,7 +24,17 @@ if [ ! -f "favicon.ico" ]; then
 fi
 
 for i in *.svg; do
+    if [ "$i" = "$APP_NAME.svg" ]; then
+        continue
+    fi
     if [ ! -f "${i%.svg}.png" ]; then
         convert -background none "$i" -resize 64x64 "${i%.svg}.png"
     fi
 done
+
+if [ ! -f "$APP_NAME.png" ]; then
+    convert -background none "$APP_NAME.svg" -resize 512x512 "$APP_NAME.png"
+fi
+
+# The line beneath this is called `modeline`. See `:help modeline`
+# vim: ts=4 sts=4 sw=4 et
