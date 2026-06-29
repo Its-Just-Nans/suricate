@@ -2,7 +2,7 @@
 
 A simple GED viewer.
 
-- <https://n4n5.dev/suricate> - demo
+- <https://suricate.n4n5.dev/> - demo
 - <https://github.com/Its-Just-Nans/suricate> - repo
 - <https://crates.io/crates/suricate> - crate
 
