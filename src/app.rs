@@ -219,7 +219,8 @@ impl BladvakApp<'_> for SuricateApp {
         if is_native() && args.len() > 1 {
             use std::io::Read;
             let path = &args[1];
-            let bytes = std::fs::read(path)?;
+            let bytes =
+                std::fs::read(path).map_err(|e| format!("Unable to read file '{path}': {e}"))?;
             let mut cursor: Cursor<&[u8]> = Cursor::new(bytes.as_ref());
             let mut buf = Vec::new();
             cursor.read_to_end(&mut buf)?;
