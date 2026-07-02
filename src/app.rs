@@ -217,15 +217,18 @@ impl BladvakApp<'_> for SuricateApp {
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
         if is_native() && args.len() > 1 {
+            use std::fs;
             use std::io::Read;
             let path = &args[1];
-            let bytes =
-                std::fs::read(path).map_err(|e| format!("Unable to read file '{path}': {e}"))?;
+            let absolute_path = fs::canonicalize(path)
+                .map_err(|e| format!("Unable to canonicalize path '{path}': {e}"))?;
+            let bytes = std::fs::read(&absolute_path)
+                .map_err(|e| format!("Unable to read file '{}': {e}", absolute_path.display()))?;
             let mut cursor: Cursor<&[u8]> = Cursor::new(bytes.as_ref());
             let mut buf = Vec::new();
             cursor.read_to_end(&mut buf)?;
             saved_state.handle_file(File {
-                path: path.into(),
+                path: absolute_path,
                 data: buf,
             })?;
             Ok(saved_state)
