@@ -9,5 +9,6 @@ STAE = "STAE"
 [files]
 extend-exclude = [
     "assets/royal92.ged",
+    "tests/pres2020.ged",
 ]
 
