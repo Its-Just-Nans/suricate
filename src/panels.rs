@@ -1,6 +1,10 @@
 //! Suricate Panels
 
+use std::collections::HashMap;
+
 use bladvak::{BladvakApp, File, app::BladvakPanel, eframe::egui};
+use ged_io::types::family::Family;
+use ged_io::types::individual::Individual;
 
 use crate::SuricateApp;
 use crate::document::Document;
@@ -110,15 +114,88 @@ impl SelectionPanel {
             });
             for one_family in &indi.families {
                 ui.separator();
-                let resp = if let Some(family) = document.data.families.get(&one_family.xref) {
-                    ui.label(format!("{family}"))
+                if let Some(family) = document.data.families.get(&one_family.xref) {
+                    ui.label(format!("Family {}", one_family.xref));
+                    ui_family(xref, family, &document.data.individuals, ui);
                 } else {
-                    ui.label("Family not found")
+                    ui.label("Family not found");
                 };
-                resp.on_hover_ui(|ui| {
-                    ui.label(format!("{one_family:#?}"));
-                });
             }
         }
     }
+}
+
+/// Display a family
+fn ui_family(
+    current_xref: &str,
+    family: &Family,
+    individuals: &HashMap<String, Individual>,
+    ui: &mut egui::Ui,
+) {
+    let partner = if let Some(ref ind1) = family.individual1
+        && ind1 != current_xref
+    {
+        Some(ind1)
+    } else if let Some(ref ind2) = family.individual2
+        && ind2 != current_xref
+    {
+        Some(ind2)
+    } else {
+        None
+    };
+
+    if let Some(ind) = partner {
+        if let Some(ind) = individuals.get(ind) {
+            ui.label(format!("Partner: {}", ind));
+        } else {
+            ui.label(format!("Partner: {}", ind));
+        }
+    } else {
+        ui.label("(No partners)");
+    }
+
+    return;
+    /*
+        if !self.children.is_empty() {
+            write!(f, " [{} child(ren)]", self.children.len())?;
+        }
+        let mut marriage_date: Option<&str> = None;
+        let mut engagement_date: Option<&str> = None;
+        let mut separated_date: Option<&str> = None;
+        let mut divorce_date: Option<&str> = None;
+        let mut annulment_date: Option<&str> = None;
+
+        for event in &self.events {
+            match event.event {
+                crate::types::event::Event::Marriage if marriage_date.is_none() => {
+                    marriage_date = event.date.as_ref().and_then(|d| d.value.as_deref());
+                }
+                crate::types::event::Event::Engagement if engagement_date.is_none() => {
+                    engagement_date = event.date.as_ref().and_then(|d| d.value.as_deref());
+                }
+                crate::types::event::Event::Separated if separated_date.is_none() => {
+                    separated_date = event.date.as_ref().and_then(|d| d.value.as_deref());
+                }
+                crate::types::event::Event::Divorce if divorce_date.is_none() => {
+                    divorce_date = event.date.as_ref().and_then(|d| d.value.as_deref());
+                }
+                crate::types::event::Event::Annulment if annulment_date.is_none() => {
+                    annulment_date = event.date.as_ref().and_then(|d| d.value.as_deref());
+                }
+                _ => {}
+            }
+        }
+
+        if let Some(date) = marriage_date {
+            write!(f, ", m. {date}")?;
+        } else if let Some(date) = engagement_date {
+            write!(f, ", rel. {date}")?;
+        } else if let Some(date) = separated_date {
+            write!(f, ", sep. {date}")?;
+        } else if let Some(date) = divorce_date {
+            write!(f, ", div. {date}")?;
+        } else if let Some(date) = annulment_date {
+            write!(f, ", anul. {date}")?;
+        }
+    */
 }
