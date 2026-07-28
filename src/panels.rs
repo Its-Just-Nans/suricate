@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use bladvak::eframe::egui::CollapsingHeader;
 use bladvak::{BladvakApp, File, app::BladvakPanel, eframe::egui};
 use ged_io::types::family::Family;
 use ged_io::types::individual::Individual;
@@ -108,8 +109,7 @@ impl SelectionPanel {
         if let Some(xref) = &document.selected
             && let Some(indi) = document.data.individuals.get(xref)
         {
-            ui.label("Selected");
-            ui.label(format!("{indi}")).on_hover_ui(|ui| {
+            ui.strong(format!("{indi}")).on_hover_ui(|ui| {
                 ui.label(format!("{indi:#?}"));
             });
             for one_family in &indi.families {
@@ -125,6 +125,26 @@ impl SelectionPanel {
     }
 }
 
+/// Display a single individual
+fn display_ind(
+    ui: &mut egui::Ui,
+    xref: &str,
+    individuals: &HashMap<String, Individual>,
+    text: &str,
+    bold: bool,
+) {
+    let text = if let Some(ind) = individuals.get(xref) {
+        format!("{text}{ind}")
+    } else {
+        format!("{text}{xref}")
+    };
+    if bold {
+        ui.strong(text);
+    } else {
+        ui.label(text);
+    }
+}
+
 /// Display a family
 fn ui_family(
     current_xref: &str,
@@ -132,32 +152,45 @@ fn ui_family(
     individuals: &HashMap<String, Individual>,
     ui: &mut egui::Ui,
 ) {
-    let partner = if let Some(ref ind1) = family.individual1
-        && ind1 != current_xref
-    {
-        Some(ind1)
-    } else if let Some(ref ind2) = family.individual2
-        && ind2 != current_xref
-    {
-        Some(ind2)
+    if let Some(ref ind1) = family.individual1 {
+        let is_current = ind1 == current_xref;
+        display_ind(ui, ind1, individuals, "Partner1: ", is_current);
     } else {
-        None
-    };
+        ui.label("No Partner1");
+    }
+    if let Some(ref ind2) = family.individual2 {
+        let is_current = ind2 == current_xref;
+        display_ind(ui, ind2, individuals, "Partner2: ", is_current);
+    } else {
+        ui.label("No Partner2");
+    }
 
-    if let Some(ind_xref) = partner {
-        if let Some(ind) = individuals.get(ind_xref) {
-            ui.label(format!("Partner: {ind}"));
-        } else {
-            ui.label(format!("Partner: {ind_xref}"));
-        }
+    if family.children.is_empty() {
+        ui.label("No children");
     } else {
-        ui.label("(No partners)");
+        CollapsingHeader::new(format!("Children ({})", family.children.len()))
+            .id_salt(format!(
+                "{current_xref}_{}",
+                if let Some(x) = &family.xref {
+                    x
+                } else {
+                    "none"
+                }
+            ))
+            .show(ui, |ui| {
+                for one_child_xref in &family.children {
+                    display_ind(
+                        ui,
+                        one_child_xref,
+                        individuals,
+                        "Child: ",
+                        one_child_xref == current_xref,
+                    );
+                }
+            });
     }
 
     /*
-        if !self.children.is_empty() {
-            write!(f, " [{} child(ren)]", self.children.len())?;
-        }
         let mut marriage_date: Option<&str> = None;
         let mut engagement_date: Option<&str> = None;
         let mut separated_date: Option<&str> = None;
