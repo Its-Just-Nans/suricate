@@ -63,7 +63,7 @@ impl SuricateApp {
                             let name = if let Some(indi) =
                                 document.data.individuals.get(&node.data.xref)
                             {
-                                if let Some(name) = &indi.name
+                                if let Some(name) = &indi.names.first()
                                     && let Some(full_name) = &name.full_name()
                                 {
                                     full_name.clone()

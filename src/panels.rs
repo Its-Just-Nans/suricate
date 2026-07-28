@@ -106,6 +106,7 @@ impl SelectionPanel {
         let Some(document) = app.documents.get_current_doc_mut() else {
             return;
         };
+        let mut new_selected = None;
         if let Some(xref) = &document.selected
             && let Some(indi) = document.data.individuals.get(xref)
         {
@@ -116,51 +117,89 @@ impl SelectionPanel {
                 ui.separator();
                 if let Some(family) = document.data.families.get(&one_family.xref) {
                     ui.label(format!("Family {}", one_family.xref));
-                    ui_family(xref, family, &document.data.individuals, ui);
+                    if let Some(new_res) = ui_family(xref, family, &document.data.individuals, ui) {
+                        new_selected = Some(new_res);
+                    }
                 } else {
                     ui.label("Family not found");
                 }
             }
         }
+        if let Some(new_selected) = new_selected {
+            document.selected = Some(new_selected);
+        }
     }
 }
 
 /// Display a single individual
+#[must_use]
 fn display_ind(
     ui: &mut egui::Ui,
     xref: &str,
     individuals: &HashMap<String, Individual>,
     text: &str,
     bold: bool,
-) {
-    let text = if let Some(ind) = individuals.get(xref) {
-        format!("{text}{ind}")
+) -> Option<String> {
+    let mut ret = None;
+    if let Some(ind) = individuals.get(xref) {
+        ui.horizontal(|ui| {
+            if let Some(ref xref) = ind.xref
+                && ui.button(xref).clicked()
+            {
+                ret = Some(xref.clone());
+            }
+            let text = format!(
+                "{text}{}{}",
+                if let Some(name) = ind.names.first() {
+                    format!("{name}")
+                } else {
+                    "(Unknown Name)".to_string()
+                },
+                if let Some(sex) = &ind.sex {
+                    format!(" ({})", sex.value)
+                } else {
+                    String::new()
+                }
+            );
+            if bold {
+                ui.strong(text);
+            } else {
+                ui.label(text);
+            }
+        });
     } else {
-        format!("{text}{xref}")
-    };
-    if bold {
-        ui.strong(text);
-    } else {
-        ui.label(text);
+        let text = format!("{text}{xref}");
+        if bold {
+            ui.strong(text);
+        } else {
+            ui.label(text);
+        }
     }
+    ret
 }
 
 /// Display a family
+#[must_use]
 fn ui_family(
     current_xref: &str,
     family: &Family,
     individuals: &HashMap<String, Individual>,
     ui: &mut egui::Ui,
-) {
+) -> Option<String> {
+    let mut ret = None;
     if let Some(ref ind1) = family.individual1 {
         let is_current = ind1 == current_xref;
-        display_ind(ui, ind1, individuals, "Partner1: ", is_current);
+        if let Some(res) = display_ind(ui, ind1, individuals, "Partner1: ", is_current) {
+            ret = Some(res);
+        }
     } else {
         ui.label("No Partner1");
     }
     if let Some(ref ind2) = family.individual2 {
         let is_current = ind2 == current_xref;
-        display_ind(ui, ind2, individuals, "Partner2: ", is_current);
+        if let Some(res) = display_ind(ui, ind2, individuals, "Partner2: ", is_current) {
+            ret = Some(res);
+        }
     } else {
         ui.label("No Partner2");
     }
@@ -179,17 +218,19 @@ fn ui_family(
             ))
             .show(ui, |ui| {
                 for one_child_xref in &family.children {
-                    display_ind(
+                    if let Some(res) = display_ind(
                         ui,
                         one_child_xref,
                         individuals,
                         "Child: ",
                         one_child_xref == current_xref,
-                    );
+                    ) {
+                        ret = Some(res);
+                    }
                 }
             });
     }
-
+    ret
     /*
         let mut marriage_date: Option<&str> = None;
         let mut engagement_date: Option<&str> = None;

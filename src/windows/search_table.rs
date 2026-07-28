@@ -56,7 +56,7 @@ impl SearchTable {
                         .individuals
                         .values()
                         .filter(|indi| {
-                            if let Some(name) = &indi.name
+                            if let Some(name) = &indi.names.first()
                                 && let Some(full_name) = &name.full_name()
                             {
                                 full_name
@@ -142,7 +142,7 @@ impl SearchTable {
                                     row.col(|ui| {
                                         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                                         let indi = row_data;
-                                        let name = if let Some(name) = &indi.name
+                                        let name = if let Some(name) = &indi.names.first()
                                             && let Some(full_name) = &name.full_name()
                                         {
                                             full_name.clone()

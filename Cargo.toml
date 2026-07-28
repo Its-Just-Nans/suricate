@@ -16,8 +16,8 @@ categories = ["visualization"]
 bladvak = "1.3.24"
 # bladvak = { path = "../bladvak" }
 encoding_rs = "0.8.35"
-ged_io = { version = "0.14.5", features = ["json", "gedzip"] }
-serde = "1.0.228"
+ged_io = { version = "0.16.1", features = ["json", "gedzip"] }
+serde = "1.0.229"
 
 [package.metadata.docs.rs]
 all-features = true
