@@ -5,7 +5,7 @@ use bladvak::egui_extras::{Column, TableBuilder};
 use bladvak::errors::ErrorManager;
 use ged_io::types::individual::Individual;
 
-use crate::app::TreeData;
+use crate::document::TreeData;
 
 /// `SearchTable` data
 #[derive(serde::Deserialize, serde::Serialize, Debug)]

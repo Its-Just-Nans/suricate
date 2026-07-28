@@ -1,5 +1,7 @@
 //! Suricate App
+
 use bladvak::egui_extras;
+use bladvak::utils::Documents;
 use bladvak::{
     File,
     app::BladvakApp,
@@ -10,120 +12,40 @@ use bladvak::{
     eframe::{CreationContext, egui},
     utils::is_native,
 };
-use ged_io::types::family::Family;
-use ged_io::types::individual::Individual;
-use std::collections::HashMap;
-use std::{fmt::Debug, io::Cursor, path::PathBuf};
+use std::fmt::Debug;
 
-use crate::central_panel::build_family_nodes;
-use crate::panels::FileInfo;
-use crate::windows::WindowsData;
-
-/// Data associated to a node
-#[derive(Clone, serde::Deserialize, serde::Serialize, Debug)]
-pub struct NodeData {
-    /// Xref of the node
-    pub(crate) xref: String,
-    /// Name of the individual
-    pub(crate) name: String,
-}
-
-/// Node to render
-#[derive(Clone, serde::Deserialize, serde::Serialize, Debug)]
-pub struct Node {
-    /// Node id
-    pub id: egui::Id,
-    /// Node position
-    pub pos: egui::Pos2, // center position in scene space
-    /// Node size
-    pub size: egui::Vec2,
-    /// Xref
-    pub data: NodeData,
-    /// Is node selected
-    pub selected: bool,
-}
-
-/// Data extracted from the file
-#[derive(serde::Deserialize, serde::Serialize, Debug, Default)]
-pub(crate) struct TreeData {
-    /// List of individuals
-    pub(crate) individuals: HashMap<String, Individual>,
-    /// List of families
-    pub(crate) families: HashMap<String, Family>,
-}
+use crate::document::Document;
+use crate::panels::{FileInfo, SelectionPanel};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 #[serde(default)]
 pub struct SuricateApp {
-    /// Current scene zoom
-    pub(crate) scene_rect: egui::Rect,
-    /// Filename
-    pub(crate) filename: PathBuf,
+    /// documents
+    #[serde(skip)]
+    pub(crate) documents: Documents<Document>,
     /// Grid options
     pub(crate) grid: Grid,
-    /// Data
-    pub(crate) data: TreeData,
-    /// Node to render
-    pub(crate) nodes: Vec<Node>,
-    /// Selected Node
-    pub(crate) selected: Option<String>,
-    /// Windows Data
-    pub(crate) windows_data: WindowsData,
 }
 
 impl Default for SuricateApp {
     fn default() -> Self {
-        let nodes = vec![];
+        let mut documents = Documents::default();
+        documents.push(Document::default());
         Self {
-            scene_rect: egui::Rect::NAN,
-            filename: PathBuf::new(),
             grid: Grid::default(),
-            data: TreeData::default(),
-            nodes,
-            selected: None,
-            windows_data: WindowsData::new(),
+            documents,
         }
     }
 }
 
-/// default image
-const ASSET: &[u8] = include_bytes!("../assets/royal92.ged");
-
-impl SuricateApp {
-    /// Load the default image
-    pub(crate) fn load_default_file() -> (PathBuf, Cursor<&'static [u8]>) {
-        let cursor = Cursor::new(ASSET);
-        let filename = PathBuf::from("royal92.ged");
-        (filename, cursor)
-    }
-
-    /// Mark data as stale
-    pub(crate) fn stale(&mut self) {
-        self.windows_data.reset();
-    }
-}
-
 impl BladvakApp<'_> for SuricateApp {
-    fn side_panel(
-        &mut self,
-        ui: &mut egui::Ui,
-        func_ui: impl FnOnce(&mut egui::Ui, &mut SuricateApp),
-    ) {
-        egui::Frame::central_panel(&ui.ctx().global_style()).show(ui, |panel_ui| {
-            egui::ScrollArea::both().show(panel_ui, |ui| {
-                self.ui_side_panel(ui);
-            });
-            func_ui(panel_ui, self);
-        });
-    }
-
     fn panel_list(&self) -> Vec<Box<dyn bladvak::app::BladvakPanel<App = Self>>> {
-        vec![Box::new(FileInfo)]
+        vec![Box::new(FileInfo), Box::new(SelectionPanel)]
     }
 
     fn is_side_panel(&self) -> bool {
-        true
+        self.documents.is_some()
     }
 
     fn is_open_button(&self) -> bool {
@@ -131,54 +53,20 @@ impl BladvakApp<'_> for SuricateApp {
     }
 
     fn handle_file(&mut self, file: File) -> Result<(), AppError> {
-        use encoding_rs::mem::decode_latin1;
-        use ged_io::Gedcom;
-        use std::borrow::Cow;
-
-        // the parser takes the gedcom file contents as a chars iterator
-        let gedcom_source = match std::str::from_utf8(&file.data) {
-            Ok(s) => Cow::Borrowed(s),
-            Err(_e) => decode_latin1(&file.data),
-        };
-        let mut gedcom =
-            Gedcom::new(gedcom_source.chars()).map_err(|e| format!("gedcom error: {e}"))?;
-        let gedcom_data = gedcom
-            .parse_data()
-            .map_err(|e| format!("gedcom error: {e}"))?;
-
-        // Display file statistics
-        gedcom_data.stats();
-        self.filename = file.path;
-        self.stale();
-        // output some stats on the gedcom contents
-        self.data.individuals = gedcom_data
-            .individuals
-            .into_iter()
-            .map(|f| {
-                let key = f.xref.clone().unwrap_or("1".to_string());
-                (key, f)
-            })
-            .collect();
-
-        self.data.families = gedcom_data
-            .families
-            .into_iter()
-            .map(|f| {
-                let key = f.xref.clone().unwrap_or("1".to_string());
-                (key, f)
-            })
-            .collect();
-
-        self.nodes = build_family_nodes(&self.data.individuals, &self.data.families);
+        let document = Document::try_new(file.path, &file.data)?;
+        self.documents.push(document);
         Ok(())
     }
 
     fn top_panel(&mut self, ui: &mut egui::Ui, _error_manager: &mut ErrorManager) {
-        ui.menu_button("Windows", |ui| {
-            self.windows_data.ui_top_bar(ui);
-        });
         ui.separator();
-        ui.label(format!("Filename: {}", self.filename.display()));
+        if let Some(document) = self.documents.get_current_doc_mut() {
+            ui.menu_button("Windows", |ui| {
+                document.windows_data.ui_top_bar(ui);
+            });
+            ui.separator();
+        }
+        self.documents.show_file_list(ui);
     }
 
     fn menu_file(&mut self, _ui: &mut egui::Ui, _error_manager: &mut ErrorManager) {
@@ -207,10 +95,10 @@ impl BladvakApp<'_> for SuricateApp {
     }
 
     fn try_new_with_args(
-        mut saved_state: Self,
+        saved_state: Self,
         cc: &CreationContext<'_>,
         args: &[String],
-        _error_manager: &mut ErrorManager,
+        error_manager: &mut ErrorManager,
     ) -> Result<Self, AppError> {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
@@ -218,47 +106,38 @@ impl BladvakApp<'_> for SuricateApp {
 
         if is_native() && args.len() > 1 {
             use std::fs;
-            use std::io::Read;
-            let path = &args[1];
-            let absolute_path = fs::canonicalize(path)
-                .map_err(|e| format!("Unable to canonicalize path '{path}': {e}"))?;
-            let bytes = std::fs::read(&absolute_path)
-                .map_err(|e| format!("Unable to read file '{}': {e}", absolute_path.display()))?;
-            let mut cursor: Cursor<&[u8]> = Cursor::new(bytes.as_ref());
-            let mut buf = Vec::new();
-            cursor.read_to_end(&mut buf)?;
-            saved_state.handle_file(File {
-                path: absolute_path,
-                data: buf,
-            })?;
-            Ok(saved_state)
+            let mut app = saved_state;
+            app.documents.clear();
+            for one_path in &args[1..] {
+                let absolute_path = match fs::canonicalize(one_path) {
+                    Ok(path) => path,
+                    Err(e) => {
+                        error_manager.add_error(format!("Unable to access path '{one_path}': {e}"));
+                        continue;
+                    }
+                };
+                let bytes = match std::fs::read(&absolute_path) {
+                    Ok(bytes) => bytes,
+                    Err(e) => {
+                        error_manager.add_error(format!(
+                            "Unable to read file '{}': {e}",
+                            absolute_path.display()
+                        ));
+                        continue;
+                    }
+                };
+                let document = match Document::try_new(absolute_path, &bytes) {
+                    Ok(d) => d,
+                    Err(e) => {
+                        error_manager.add_error(e);
+                        continue;
+                    }
+                };
+                app.documents.push(document);
+            }
+            Ok(app)
         } else {
             Ok(saved_state)
-        }
-    }
-}
-
-impl SuricateApp {
-    /// Side panel showing current selection
-    fn ui_side_panel(&mut self, ui: &mut egui::Ui) {
-        ui.label("Selected");
-        if let Some(xref) = &self.selected
-            && let Some(indi) = self.data.individuals.get(xref)
-        {
-            ui.label(format!("{indi}")).on_hover_ui(|ui| {
-                ui.label(format!("{indi:#?}"));
-            });
-            for one_family in &indi.families {
-                ui.separator();
-                let resp = if let Some(family) = self.data.families.get(&one_family.xref) {
-                    ui.label(format!("{family}"))
-                } else {
-                    ui.label("Family not found")
-                };
-                resp.on_hover_ui(|ui| {
-                    ui.label(format!("{one_family:#?}"));
-                });
-            }
         }
     }
 }

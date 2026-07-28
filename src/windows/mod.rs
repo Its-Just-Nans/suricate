@@ -44,35 +44,40 @@ impl WindowsData {
 impl SuricateApp {
     /// Display windows
     pub(crate) fn ui_windows(&mut self, ui: &mut egui::Ui, error_manager: &mut ErrorManager) {
-        let old_selection = self.selected.clone();
+        let Some(document) = self.documents.get_current_doc_mut() else {
+            return;
+        };
+        let old_selection = document.selected.clone();
         if let Some(user_selected) =
-            self.windows_data
+            document
+                .windows_data
                 .search_table
-                .ui(&self.data, ui, error_manager)
+                .ui(&document.data, ui, error_manager)
         {
-            if let Some(node) = self
+            if let Some(node) = document
                 .nodes
                 .iter_mut()
                 .find(|one_node| one_node.data.xref == user_selected)
             {
                 node.selected = true;
             }
-            self.selected = Some(user_selected);
+            document.selected = Some(user_selected);
         } else if let Some(user_selected) =
-            self.windows_data
+            document
+                .windows_data
                 .search_families
-                .ui(&self.data, ui, error_manager)
+                .ui(&document.data, ui, error_manager)
         {
-            if let Some(node) = self
+            if let Some(node) = document
                 .nodes
                 .iter_mut()
                 .find(|one_node| one_node.data.xref == user_selected)
             {
                 node.selected = true;
             }
-            self.selected = Some(user_selected);
+            document.selected = Some(user_selected);
         } else if let Some(old_selected) = old_selection
-            && let Some(node) = self
+            && let Some(node) = document
                 .nodes
                 .iter_mut()
                 .find(|one_node| one_node.data.xref == old_selected)

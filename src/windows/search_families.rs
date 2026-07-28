@@ -5,7 +5,7 @@ use bladvak::egui_extras::{Column, TableBuilder};
 use bladvak::errors::ErrorManager;
 use ged_io::types::family::Family;
 
-use crate::app::TreeData;
+use crate::document::TreeData;
 
 /// `SearchFamilies` data
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
@@ -47,7 +47,7 @@ impl SearchFamilies {
         if self.is_open {
             let mut clicked = None;
             let mut is_open = self.is_open;
-            egui::Window::new("Search table")
+            egui::Window::new("Search Families")
                 .open(&mut is_open)
                 .show(ui.ctx(), |ui| {
                     ui.text_edit_singleline(&mut self.searching);

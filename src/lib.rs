@@ -27,6 +27,7 @@
 
 mod app;
 mod central_panel;
+mod document;
 mod panels;
 mod windows;
 

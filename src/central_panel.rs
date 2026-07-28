@@ -3,8 +3,8 @@
 use bladvak::eframe::egui::{self, Pos2, Sense};
 
 use crate::SuricateApp;
-use crate::app::Node;
-use crate::app::NodeData;
+use crate::document::Node;
+use crate::document::NodeData;
 use ged_io::types::family::Family;
 use ged_io::types::individual::Individual;
 use ged_io::types::individual::family_link::FamilyLinkType;
@@ -16,17 +16,27 @@ impl SuricateApp {
         ui: &mut egui::Ui,
         _error_manager: &mut bladvak::ErrorManager,
     ) {
+        if self.documents.get_current_doc_mut().is_none() {
+            bladvak::utils::central_ui(ui, |ui| {
+                ui.heading(concat!("Welcome to ", env!("CARGO_PKG_NAME")));
+                ui.label("No document opened");
+            });
+            return;
+        }
         let _rect = ui.available_rect_before_wrap();
+        let Some(document) = self.documents.get_current_doc_mut() else {
+            return;
+        };
         egui::Scene::new()
             .max_inner_size([350.0, 1000.0])
             .zoom_range(0.1..=50.0)
-            .show(ui, &mut self.scene_rect, |ui| {
+            .show(ui, &mut document.scene_rect, |ui| {
                 let bg_r: egui::Response = ui.response();
                 if bg_r.rect.is_finite() {
                     self.grid.draw(&bg_r.rect, ui.painter());
                 }
 
-                for node in &mut self.nodes {
+                for node in &mut document.nodes {
                     let node_rect = egui::Rect::from_center_size(node.pos, node.size);
 
                     let node_ui = &mut ui.new_child(
@@ -50,18 +60,19 @@ impl SuricateApp {
                         ))
                         .corner_radius(6.0)
                         .show(node_ui, |ui| {
-                            let name =
-                                if let Some(indi) = self.data.individuals.get(&node.data.xref) {
-                                    if let Some(name) = &indi.name
-                                        && let Some(full_name) = &name.full_name()
-                                    {
-                                        full_name.clone()
-                                    } else {
-                                        "No name".to_string()
-                                    }
+                            let name = if let Some(indi) =
+                                document.data.individuals.get(&node.data.xref)
+                            {
+                                if let Some(name) = &indi.name
+                                    && let Some(full_name) = &name.full_name()
+                                {
+                                    full_name.clone()
                                 } else {
-                                    "Individual not found".to_string()
-                                };
+                                    "No name".to_string()
+                                }
+                            } else {
+                                "Individual not found".to_string()
+                            };
                             // Title bar
                             ui.horizontal(|ui| {
                                 ui.label(
@@ -87,11 +98,11 @@ impl SuricateApp {
                     if response.clicked() {
                         node.selected = !node.selected;
                         if node.selected {
-                            self.selected = Some(node.data.xref.clone());
+                            document.selected = Some(node.data.xref.clone());
                         } else {
-                            self.selected = None;
+                            document.selected = None;
                         }
-                    } else if let Some(nn) = &self.selected {
+                    } else if let Some(nn) = &document.selected {
                         if *nn != node.data.xref {
                             node.selected = false;
                         }
