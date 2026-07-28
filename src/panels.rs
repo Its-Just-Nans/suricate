@@ -119,7 +119,7 @@ impl SelectionPanel {
                     ui_family(xref, family, &document.data.individuals, ui);
                 } else {
                     ui.label("Family not found");
-                };
+                }
             }
         }
     }
@@ -144,17 +144,16 @@ fn ui_family(
         None
     };
 
-    if let Some(ind) = partner {
-        if let Some(ind) = individuals.get(ind) {
-            ui.label(format!("Partner: {}", ind));
+    if let Some(ind_xref) = partner {
+        if let Some(ind) = individuals.get(ind_xref) {
+            ui.label(format!("Partner: {ind}"));
         } else {
-            ui.label(format!("Partner: {}", ind));
+            ui.label(format!("Partner: {ind_xref}"));
         }
     } else {
         ui.label("(No partners)");
     }
 
-    return;
     /*
         if !self.children.is_empty() {
             write!(f, " [{} child(ren)]", self.children.len())?;
