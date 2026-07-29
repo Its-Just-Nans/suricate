@@ -45,7 +45,11 @@ impl BladvakApp<'_> for SuricateApp {
     }
 
     fn is_side_panel(&self) -> bool {
-        self.documents.is_some()
+        if let Some(document) = self.documents.get_current_doc() {
+            document.selected.is_some()
+        } else {
+            false
+        }
     }
 
     fn is_open_button(&self) -> bool {
