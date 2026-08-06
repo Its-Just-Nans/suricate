@@ -1,6 +1,6 @@
 {
-    "name": "suricate PWA",
-    "short_name": "suricate-pwa",
+    "name": "suricate",
+    "short_name": "suricate",
     "icons": [
         {
             "src": "./assets/icon-256.png",
