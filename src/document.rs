@@ -39,7 +39,7 @@ pub struct Node {
 }
 
 /// Data extracted from the file
-#[derive(serde::Deserialize, serde::Serialize, Debug, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Default, Clone)]
 pub(crate) struct TreeData {
     /// List of individuals
     #[serde(skip)]
@@ -71,7 +71,7 @@ impl Default for Document {
         let (filename, bytes) = Self::load_default_file();
         let doc = Self::try_new(filename, bytes);
         doc.unwrap_or_else(|_| Self {
-            scene_rect: egui::Rect::NAN,
+            scene_rect: egui::Rect::ZERO,
             filename: PathBuf::new(),
             data: TreeData::default(),
             nodes: vec![],
@@ -84,6 +84,19 @@ impl Default for Document {
 impl DocumentTrait for Document {
     fn path(&self) -> &Path {
         &self.filename
+    }
+    fn set_path(&mut self, new_path: PathBuf) {
+        self.filename = new_path;
+    }
+    fn deep_clone(&self) -> Self {
+        Self {
+            scene_rect: self.scene_rect,
+            filename: self.filename.clone(),
+            data: self.data.clone(),
+            nodes: self.nodes.clone(),
+            selected: self.selected.clone(),
+            windows_data: WindowsData::new(),
+        }
     }
 }
 

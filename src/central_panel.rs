@@ -86,7 +86,7 @@ impl SuricateApp {
                         });
                     let response = ui.interact(
                         node_rect,
-                        egui::Id::new(format!("{}-int", node.id.value())),
+                        ui.scope_id().with(format!("{}-int", node.id.value())),
                         Sense::click_and_drag(),
                     );
                     // Drag to move
@@ -214,7 +214,7 @@ pub fn build_family_nodes(
                 .unwrap_or_default();
 
             nodes.push(Node {
-                id: egui::Id::new(xref),
+                id: egui::Id::unique(xref),
                 pos,
                 size: egui::vec2(180.0, 80.0),
                 data: NodeData {
@@ -232,8 +232,8 @@ pub fn build_family_nodes(
         let ind1 = fam.individual1.as_deref();
         let ind2 = fam.individual2.as_deref();
         if let (Some(a), Some(b)) = (ind1, ind2) {
-            let a_id = egui::Id::new(a);
-            let b_id = egui::Id::new(b);
+            let a_id = egui::Id::unique(a);
+            let b_id = egui::Id::unique(b);
             if let (Some(pa), Some(pb)) = (placed.get(a), placed.get(b)) {
                 // If they ended up on the same row, nudge them adjacent
                 if (pa.y - pb.y).abs() < 1.0 {
