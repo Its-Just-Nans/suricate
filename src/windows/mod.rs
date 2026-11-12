@@ -57,7 +57,7 @@ impl SuricateApp {
             if let Some(node) = document
                 .nodes
                 .iter_mut()
-                .find(|one_node| one_node.data.xref == user_selected)
+                .find(|one_node| one_node.data.id == user_selected)
             {
                 node.selected = true;
             }
@@ -71,7 +71,7 @@ impl SuricateApp {
             if let Some(node) = document
                 .nodes
                 .iter_mut()
-                .find(|one_node| one_node.data.xref == user_selected)
+                .find(|one_node| one_node.data.id == user_selected)
             {
                 node.selected = true;
             }
@@ -80,7 +80,7 @@ impl SuricateApp {
             && let Some(node) = document
                 .nodes
                 .iter_mut()
-                .find(|one_node| one_node.data.xref == old_selected)
+                .find(|one_node| one_node.data.id == old_selected)
         {
             node.selected = true;
         }

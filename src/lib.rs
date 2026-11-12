@@ -29,6 +29,7 @@ mod app;
 mod central_panel;
 mod document;
 mod panels;
+pub(crate) mod types;
 mod windows;
 
 pub use app::SuricateApp;

@@ -4,11 +4,10 @@ use std::collections::HashMap;
 
 use bladvak::eframe::egui::CollapsingHeader;
 use bladvak::{BladvakApp, File, app::BladvakPanel, eframe::egui};
-use ged_io::types::family::Family;
-use ged_io::types::individual::Individual;
 
 use crate::SuricateApp;
 use crate::document::Document;
+use crate::types::{Family, Id, Individual};
 
 /// Panel for file information
 #[derive(Debug)]
@@ -110,13 +109,25 @@ impl SelectionPanel {
         if let Some(xref) = &document.selected
             && let Some(indi) = document.data.individuals.get(xref)
         {
-            ui.strong(format!("{indi}")).on_hover_ui(|ui| {
-                ui.label(format!("{indi:#?}"));
-            });
-            for one_family in &indi.families {
+            ui.strong(format!("{} - {}", indi.name, indi.id.to_string_pretty()))
+                .on_hover_ui(|ui| {
+                    ui.label(format!("{indi:#?}"));
+                });
+            for one_family_id in &indi.spouse_of {
                 ui.separator();
-                if let Some(family) = document.data.families.get(&one_family.xref) {
-                    ui.label(format!("Family {}", one_family.xref));
+                if let Some(family) = document.data.families.get(one_family_id) {
+                    ui.label(format!("Family {}", one_family_id.to_string_pretty()));
+                    if let Some(new_res) = ui_family(xref, family, &document.data.individuals, ui) {
+                        new_selected = Some(new_res);
+                    }
+                } else {
+                    ui.label("Family not found");
+                }
+            }
+            for one_family_id in &indi.child_of {
+                ui.separator();
+                if let Some(family) = document.data.families.get(one_family_id) {
+                    ui.label(format!("Family {}", one_family_id.to_string_pretty()));
                     if let Some(new_res) = ui_family(xref, family, &document.data.individuals, ui) {
                         new_selected = Some(new_res);
                     }
@@ -135,41 +146,29 @@ impl SelectionPanel {
 #[must_use]
 fn display_ind(
     ui: &mut egui::Ui,
-    xref: &str,
-    individuals: &HashMap<String, Individual>,
+    id: &Id,
+    individuals: &HashMap<Id, Individual>,
     text: &str,
-    bold: bool,
-) -> Option<String> {
+    is_current: bool,
+) -> Option<Id> {
     let mut ret = None;
-    if let Some(ind) = individuals.get(xref) {
+    if let Some(ind) = individuals.get(id) {
         ui.horizontal(|ui| {
-            if let Some(ref xref) = ind.xref
-                && ui.button(xref).clicked()
-            {
-                ret = Some(xref.clone());
-            }
-            let text = format!(
-                "{text}{}{}",
-                if let Some(name) = ind.names.first() {
-                    format!("{name}")
-                } else {
-                    "(Unknown Name)".to_string()
-                },
-                if let Some(sex) = &ind.sex {
-                    format!(" ({})", sex.value)
-                } else {
-                    String::new()
+            ui.add_enabled_ui(!is_current, |ui| {
+                if ui.button(ind.id.to_string_pretty()).clicked() {
+                    ret = Some(id.clone());
                 }
-            );
-            if bold {
+            });
+            let text = format!("{text}{}{}", ind.name, &ind.sex);
+            if is_current {
                 ui.strong(text);
             } else {
                 ui.label(text);
             }
         });
     } else {
-        let text = format!("{text}{xref}");
-        if bold {
+        let text = format!("{text}{id}");
+        if is_current {
             ui.strong(text);
         } else {
             ui.label(text);
@@ -181,13 +180,13 @@ fn display_ind(
 /// Display a family
 #[must_use]
 fn ui_family(
-    current_xref: &str,
+    current_xref: &Id,
     family: &Family,
-    individuals: &HashMap<String, Individual>,
+    individuals: &HashMap<Id, Individual>,
     ui: &mut egui::Ui,
-) -> Option<String> {
+) -> Option<Id> {
     let mut ret = None;
-    if let Some(ref ind1) = family.individual1 {
+    if let Some(ind1) = &family.indi1 {
         let is_current = ind1 == current_xref;
         if let Some(res) = display_ind(ui, ind1, individuals, "Partner1: ", is_current) {
             ret = Some(res);
@@ -195,7 +194,7 @@ fn ui_family(
     } else {
         ui.label("No Partner1");
     }
-    if let Some(ref ind2) = family.individual2 {
+    if let Some(ind2) = &family.indi2 {
         let is_current = ind2 == current_xref;
         if let Some(res) = display_ind(ui, ind2, individuals, "Partner2: ", is_current) {
             ret = Some(res);
@@ -208,14 +207,7 @@ fn ui_family(
         ui.label("No children");
     } else {
         CollapsingHeader::new(format!("Children ({})", family.children.len()))
-            .id_salt(format!(
-                "{current_xref}_{}",
-                if let Some(x) = &family.xref {
-                    x
-                } else {
-                    "none"
-                }
-            ))
+            .id_salt(format!("{current_xref}_{}", &family.id))
             .show(ui, |ui| {
                 for one_child_xref in &family.children {
                     if let Some(res) = display_ind(

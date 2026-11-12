@@ -5,9 +5,8 @@ use bladvak::eframe::egui::{self, Pos2, Sense};
 use crate::SuricateApp;
 use crate::document::Node;
 use crate::document::NodeData;
-use ged_io::types::family::Family;
-use ged_io::types::individual::Individual;
-use ged_io::types::individual::family_link::FamilyLinkType;
+use crate::types::Id;
+use crate::types::{Family, Individual};
 
 impl SuricateApp {
     /// Central panel
@@ -60,23 +59,16 @@ impl SuricateApp {
                         ))
                         .corner_radius(6.0)
                         .show(node_ui, |ui| {
-                            let name = if let Some(indi) =
-                                document.data.individuals.get(&node.data.xref)
-                            {
-                                if let Some(name) = &indi.names.first()
-                                    && let Some(full_name) = &name.full_name()
-                                {
-                                    full_name.clone()
+                            let name =
+                                if let Some(indi) = document.data.individuals.get(&node.data.id) {
+                                    &indi.name
                                 } else {
-                                    "No name".to_string()
-                                }
-                            } else {
-                                "Individual not found".to_string()
-                            };
+                                    "Individual not found"
+                                };
                             // Title bar
                             ui.horizontal(|ui| {
                                 ui.label(
-                                    egui::RichText::new(&name)
+                                    egui::RichText::new(name)
                                         .color(egui::Color32::WHITE)
                                         .strong(),
                                 );
@@ -98,12 +90,12 @@ impl SuricateApp {
                     if response.clicked() {
                         node.selected = !node.selected;
                         if node.selected {
-                            document.selected = Some(node.data.xref.clone());
+                            document.selected = Some(node.data.id.clone());
                         } else {
                             document.selected = None;
                         }
                     } else if let Some(nn) = &document.selected {
-                        if *nn != node.data.xref {
+                        if *nn != node.data.id {
                             node.selected = false;
                         }
                     } else {
@@ -128,55 +120,44 @@ const V_GAP: f32 = 80.0;
 
 /// Build the tree
 pub fn build_family_nodes(
-    individuals: &HashMap<String, Individual>,
-    families: &HashMap<String, Family>,
+    individuals: &HashMap<Id, Individual>,
+    families: &HashMap<Id, Family>,
 ) -> Vec<Node> {
     let mut nodes = Vec::new();
-    let mut placed: HashMap<String, Pos2> = HashMap::new();
+    let mut placed: HashMap<Id, Pos2> = HashMap::new();
 
     // 1. Find root individuals: those who appear only as Spouse, never as Child
-    let children_xrefs: HashSet<String> = individuals
+    let children_xrefs: HashSet<Id> = individuals
         .values()
-        .filter_map(|ind| {
-            ind.families
-                .iter()
-                .find(|fl| fl.family_link_type == FamilyLinkType::Child)
-                .map(|_| ind.xref.clone().unwrap_or(String::new()))
-        })
+        .flat_map(|ind| ind.child_of.iter().map(|_| ind.id.clone()))
         .collect();
 
     let roots: Vec<&Individual> = individuals
         .values()
-        .filter(|ind| {
-            let xref = ind.xref.as_deref().unwrap_or("");
-            !children_xrefs.contains(xref)
-        })
+        .filter(|ind| !children_xrefs.contains(&ind.id))
         .collect();
 
     // 2. Place generation by generation using BFS
-    let mut generation: Vec<Vec<String>> = Vec::new();
-    let mut visited_fams: HashSet<String> = HashSet::default();
+    let mut generation: Vec<Vec<Id>> = Vec::new();
+    let mut visited_fams: HashSet<Id> = HashSet::default();
 
     // Generation 0: root individuals grouped by their spouse family
-    let root_xrefs: Vec<String> = roots.iter().filter_map(|i| i.xref.clone()).collect();
+    let root_xrefs: Vec<Id> = roots.iter().map(|i| i.id.clone()).collect();
     generation.push(root_xrefs.clone());
 
     // Walk down through families
     let mut current_gen = root_xrefs;
     loop {
-        let mut next_gen: Vec<String> = Vec::new();
+        let mut next_gen: Vec<Id> = Vec::new();
         for xref in &current_gen {
             if let Some(ind) = individuals.get(xref) {
-                for fl in &ind.families {
-                    if fl.family_link_type != FamilyLinkType::Spouse {
+                for family_id in &ind.spouse_of {
+                    if visited_fams.contains(family_id) {
                         continue;
                     }
-                    if visited_fams.contains(&fl.xref) {
-                        continue;
-                    }
-                    visited_fams.insert(fl.xref.clone());
+                    visited_fams.insert(family_id.clone());
 
-                    if let Some(fam) = families.get(&fl.xref) {
+                    if let Some(fam) = families.get(family_id) {
                         for child_xref in &fam.children {
                             if !next_gen.contains(child_xref) {
                                 next_gen.push(child_xref.clone());
@@ -208,18 +189,16 @@ pub fn build_family_nodes(
             let pos = Pos2::new(x, y);
             placed.insert(xref.clone(), pos);
 
-            let name = individuals
-                .get(xref)
-                .and_then(Individual::full_name)
-                .unwrap_or_default();
-
             nodes.push(Node {
                 id: egui::Id::unique(xref),
                 pos,
                 size: egui::vec2(180.0, 80.0),
                 data: NodeData {
-                    xref: xref.clone(),
-                    name,
+                    id: xref.clone(),
+                    name: individuals
+                        .get(xref)
+                        .map(|i| i.name.clone())
+                        .unwrap_or_default(),
                 },
                 selected: false,
             });
@@ -229,8 +208,8 @@ pub fn build_family_nodes(
     // 4. Insert spouse pairs side-by-side within their generation
     // (optional: nudge ind1 and ind2 of each family closer together)
     for fam in families.values() {
-        let ind1 = fam.individual1.as_deref();
-        let ind2 = fam.individual2.as_deref();
+        let ind1 = &fam.indi1;
+        let ind2 = &fam.indi2;
         if let (Some(a), Some(b)) = (ind1, ind2) {
             let a_id = egui::Id::unique(a);
             let b_id = egui::Id::unique(b);

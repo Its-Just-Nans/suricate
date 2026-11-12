@@ -3,9 +3,8 @@
 use bladvak::eframe::egui;
 use bladvak::egui_extras::{Column, TableBuilder};
 use bladvak::errors::ErrorManager;
-use ged_io::types::individual::Individual;
 
-use crate::document::TreeData;
+use crate::types::{Id, Individual, TreeData};
 
 /// `SearchTable` data
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
@@ -43,7 +42,7 @@ impl SearchTable {
         data: &TreeData,
         ui: &mut egui::Ui,
         _error_manager: &mut ErrorManager,
-    ) -> Option<String> {
+    ) -> Option<Id> {
         if self.is_open {
             let mut clicked = None;
             let mut is_open = self.is_open;
@@ -56,15 +55,9 @@ impl SearchTable {
                         .individuals
                         .values()
                         .filter(|indi| {
-                            if let Some(name) = &indi.names.first()
-                                && let Some(full_name) = &name.full_name()
-                            {
-                                full_name
-                                    .to_lowercase()
-                                    .contains(&self.searching.to_lowercase())
-                            } else {
-                                false
-                            }
+                            indi.name
+                                .to_lowercase()
+                                .contains(&self.searching.to_lowercase())
                         })
                         .collect();
                     let num_rows = rows.len();
@@ -129,27 +122,18 @@ impl SearchTable {
                                         ui.label(row_index.to_string());
                                     });
                                     row.col(|ui| {
-                                        if let Some(xref) = &row_data.xref {
-                                            ui.label(xref);
-                                        }
+                                        ui.label(row_data.id.to_string());
                                     });
                                     row.col(|ui| {
                                         let mut checked = false;
                                         if ui.checkbox(&mut checked, "Click me").clicked() {
-                                            clicked.clone_from(&row_data.xref);
+                                            clicked.clone_from(&Some(row_data.id.clone()));
                                         }
                                     });
                                     row.col(|ui| {
                                         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                                         let indi = row_data;
-                                        let name = if let Some(name) = &indi.names.first()
-                                            && let Some(full_name) = &name.full_name()
-                                        {
-                                            full_name.clone()
-                                        } else {
-                                            "No name".to_string()
-                                        };
-                                        ui.label(name);
+                                        ui.label(&indi.name);
                                     });
                                 },
                             );
