@@ -32,7 +32,7 @@ impl Id {
     }
 }
 
-/// Indiviudal
+/// Individual
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub(crate) struct Individual {
     /// id
