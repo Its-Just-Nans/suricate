@@ -1,6 +1,5 @@
 //! suricate document
 
-use bladvak::AppError;
 use bladvak::eframe::egui;
 use bladvak::utils::document::DocumentTrait;
 use encoding_rs::mem::decode_latin1;
@@ -55,15 +54,8 @@ pub(crate) struct Document {
 impl Default for Document {
     fn default() -> Self {
         let (filename, bytes) = Self::load_default_file();
-        let doc = Self::try_new(filename, bytes);
-        doc.unwrap_or_else(|_| Self {
-            scene_rect: egui::Rect::ZERO,
-            filename: PathBuf::new(),
-            data: TreeData::default(),
-            nodes: vec![],
-            selected: None,
-            windows_data: WindowsData::new(),
-        })
+        let (doc, _) = Self::new(filename, bytes);
+        doc
     }
 }
 
@@ -91,25 +83,27 @@ const ASSET: &[u8] = include_bytes!("../assets/royal92.ged");
 
 impl Document {
     /// Try to create new
-    #[allow(clippy::unnecessary_wraps)]
-    pub(crate) fn try_new(path: PathBuf, bytes: &[u8]) -> Result<Self, AppError> {
+    pub(crate) fn new(path: PathBuf, bytes: &[u8]) -> (Self, Vec<String>) {
         let gedcom_source = match std::str::from_utf8(bytes) {
             Ok(s) => Cow::Borrowed(s),
             Err(_e) => decode_latin1(bytes),
         };
 
-        let tree_data = TreeData::new(gedcom_source);
+        let (tree_data, errs) = TreeData::new(gedcom_source);
 
         let nodes = build_family_nodes(&tree_data.individuals, &tree_data.families);
 
-        Ok(Self {
-            data: tree_data,
-            filename: path,
-            nodes,
-            scene_rect: egui::Rect::ZERO,
-            selected: None,
-            windows_data: WindowsData::new(),
-        })
+        (
+            Self {
+                data: tree_data,
+                filename: path,
+                nodes,
+                scene_rect: egui::Rect::ZERO,
+                selected: None,
+                windows_data: WindowsData::new(),
+            },
+            errs,
+        )
     }
     /// Load the default image
     pub(crate) fn load_default_file() -> (PathBuf, &'static [u8]) {

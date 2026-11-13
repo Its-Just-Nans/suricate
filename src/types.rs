@@ -61,26 +61,54 @@ pub(crate) struct Family {
 }
 
 /// Parse the xref id
-fn parse_xref_id(s: &str) -> u32 {
+fn parse_xref_id(s: &str) -> Option<u32> {
     s.get(2..s.len().saturating_sub(1))
         .and_then(|v| v.parse().ok())
-        .unwrap_or(0)
 }
 
 /// Fully parse the xref id
-fn full_parse_xref_id(data: &Dataset, xref: Option<XrefId>) -> u32 {
-    xref.map_or(0, |x| parse_xref_id(data.store().xref(x)))
+fn full_parse_xref_id(data: &Dataset, xref: Option<XrefId>) -> Option<u32> {
+    xref.and_then(|x| parse_xref_id(data.store().xref(x)))
 }
 
 impl TreeData {
     /// Create a new data
-    pub(crate) fn new(text: impl Into<String>) -> Self {
+    pub(crate) fn new(text: impl Into<String>) -> (Self, Vec<String>) {
         let dataset = Dataset::parse(text);
+        let mut errors = vec![];
         let individuals = dataset
             .individuals()
             .into_iter()
-            .map(|f| {
-                let key = Id(full_parse_xref_id(&dataset, f.xref()));
+            .filter_map(|f| {
+                let Some(id) = full_parse_xref_id(&dataset, f.xref()) else {
+                    errors.push(format!("Cannot parse the id of {f:?}"));
+                    return None;
+                };
+
+                let spouse_of = f
+                    .spouse_of()
+                    .into_iter()
+                    .filter_map(|f| {
+                        let Some(family_id) = full_parse_xref_id(&dataset, f.family()) else {
+                            errors.push(format!("Cannot parse the family_id id of {f:?}"));
+                            return None;
+                        };
+                        Some(Id(family_id))
+                    })
+                    .collect();
+                let child_of = f
+                    .child_of()
+                    .into_iter()
+                    .filter_map(|f| {
+                        let Some(family_id) = full_parse_xref_id(&dataset, f.family()) else {
+                            errors.push(format!("Cannot parse the family_id id of {f:?}"));
+                            return None;
+                        };
+                        Some(Id(family_id))
+                    })
+                    .collect();
+
+                let key = Id(id);
                 let indi = Individual {
                     id: key.clone(),
                     sex: f.sex().map_or("N".to_string(), |s| format!("{s:?}")),
@@ -88,41 +116,49 @@ impl TreeData {
                         .names()
                         .first()
                         .map_or("No name".to_string(), oxidged::model::View::full),
-                    spouse_of: f
-                        .spouse_of()
-                        .into_iter()
-                        .map(|f| Id(full_parse_xref_id(&dataset, f.family())))
-                        .collect(),
-                    child_of: f
-                        .child_of()
-                        .into_iter()
-                        .map(|f| Id(full_parse_xref_id(&dataset, f.family())))
-                        .collect(),
+                    spouse_of,
+                    child_of,
                 };
-                (key, indi)
+                Some((key, indi))
             })
             .collect();
         let families = dataset
             .families()
             .into_iter()
-            .map(|f| {
-                let key = Id(full_parse_xref_id(&dataset, f.xref()));
+            .filter_map(|f| {
+                let Some(id) = full_parse_xref_id(&dataset, f.xref()) else {
+                    errors.push(format!("Cannot parse the family id of {f:?}"));
+                    return None;
+                };
+
+                let key = Id(id);
                 let fam = Family {
                     id: key.clone(),
-                    indi1: Some(Id(full_parse_xref_id(&dataset, f.husband_id()))),
-                    indi2: Some(Id(full_parse_xref_id(&dataset, f.wife_id()))),
+                    indi1: full_parse_xref_id(&dataset, f.husband_id()).map(Id),
+                    indi2: full_parse_xref_id(&dataset, f.wife_id()).map(Id),
                     children: f
                         .children()
                         .into_iter()
-                        .map(|f| Id(full_parse_xref_id(&dataset, f.individual())))
+                        .filter_map(|c| {
+                            let Some(c_id) = full_parse_xref_id(&dataset, c.individual()) else {
+                                errors.push(format!(
+                                    "Cannot parse the indi_id id of the individual {c:?}"
+                                ));
+                                return None;
+                            };
+                            Some(Id(c_id))
+                        })
                         .collect(),
                 };
-                (key, fam)
+                Some((key, fam))
             })
             .collect();
-        Self {
-            individuals,
-            families,
-        }
+        (
+            Self {
+                individuals,
+                families,
+            },
+            errors,
+        )
     }
 }

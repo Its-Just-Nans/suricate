@@ -56,8 +56,15 @@ impl BladvakApp<'_> for SuricateApp {
         true
     }
 
-    fn handle_file(&mut self, file: File) -> Result<(), AppError> {
-        let document = Document::try_new(file.path, &file.data)?;
+    fn handle_file(
+        &mut self,
+        file: File,
+        error_manager: &mut ErrorManager,
+    ) -> Result<(), AppError> {
+        let (document, errors) = Document::new(file.path, &file.data);
+        for one_error in errors {
+            error_manager.add_error(one_error);
+        }
         self.documents.push(document);
         Ok(())
     }
@@ -130,13 +137,10 @@ impl BladvakApp<'_> for SuricateApp {
                         continue;
                     }
                 };
-                let document = match Document::try_new(absolute_path, &bytes) {
-                    Ok(d) => d,
-                    Err(e) => {
-                        error_manager.add_error(e);
-                        continue;
-                    }
-                };
+                let (document, errors) = Document::new(absolute_path, &bytes);
+                for one_error in errors {
+                    error_manager.add_error(one_error);
+                }
                 app.documents.push(document);
             }
             Ok(app)

@@ -13,7 +13,7 @@ categories = ["visualization"]
 
 
 [dependencies]
-bladvak = "1.5.0"
+bladvak = "1.6.0"
 # bladvak = { path = "../bladvak" }
 encoding_rs = "0.8.44"
 oxidged = "0.3.2"

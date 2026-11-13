@@ -40,7 +40,7 @@ impl BladvakPanel for FileInfo {
             let mut data = Vec::new();
             match cursor.read_to_end(&mut data) {
                 Ok(_num_read) => {
-                    if let Err(e) = app.handle_file(File { path, data }) {
+                    if let Err(e) = app.handle_file(File { path, data }, error_manager) {
                         error_manager.add_error(e);
                     }
                 }
