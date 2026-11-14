@@ -30,3 +30,5 @@ opt-level = 2 # fast and small wasm
 [profile.dev.package."*"]
 opt-level = 2
 
+[patch.crates-io]
+oxidged = { git = "https://github.com/Its-Just-Nans/oxidged.git", branch = "fix-assert" }
