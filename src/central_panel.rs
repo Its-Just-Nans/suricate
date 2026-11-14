@@ -197,8 +197,7 @@ pub fn build_family_nodes(
                     id: xref.clone(),
                     name: individuals
                         .get(xref)
-                        .map(|i| i.name.clone())
-                        .unwrap_or_default(),
+                        .map_or_default(|i| i.name.clone()),
                 },
                 selected: false,
             });

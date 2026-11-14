@@ -2823,8 +2823,7 @@ dependencies = [
 [[package]]
 name = "oxidged"
 version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c34a474de0a84245426ef550b3aa10e90a24683b677ebcb25a002955bc8542b8"
+source = "git+https://github.com/Its-Just-Nans/oxidged.git?branch=fix-assert#fd2b9791965a9d05cba619a890716da279d96e00"
 
 [[package]]
 name = "parking"

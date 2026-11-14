@@ -159,7 +159,7 @@ fn display_ind(
                     ret = Some(id.clone());
                 }
             });
-            let text = format!("{text}{}{}", ind.name, &ind.sex);
+            let text = format!("{text}{}{}", ind.name, ind.sex);
             if is_current {
                 ui.strong(text);
             } else {
@@ -207,7 +207,7 @@ fn ui_family(
         ui.label("No children");
     } else {
         CollapsingHeader::new(format!("Children ({})", family.children.len()))
-            .id_salt(format!("{current_xref}_{}", &family.id))
+            .id_salt(format!("{current_xref}_{}", family.id))
             .show(ui, |ui| {
                 for one_child_xref in &family.children {
                     if let Some(res) = display_ind(
