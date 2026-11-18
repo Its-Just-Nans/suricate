@@ -41,10 +41,16 @@ impl Default for SuricateApp {
 
 impl BladvakApp<'_> for SuricateApp {
     fn panel_list(&self) -> Vec<Box<dyn bladvak::app::BladvakPanel<App = Self>>> {
-        vec![Box::new(FileInfo), Box::new(SelectionPanel)]
+        vec![
+            Box::new(FileInfo::default()),
+            Box::new(SelectionPanel::default()),
+        ]
     }
 
-    fn is_side_panel(&self) -> bool {
+    fn is_side_panel(
+        &self,
+        _panel_list: &mut [Box<dyn bladvak::app::BladvakPanel<App = Self>>],
+    ) -> bool {
         if let Some(document) = self.documents.get_current_doc() {
             document.selected.is_some()
         } else {
@@ -84,7 +90,12 @@ impl BladvakApp<'_> for SuricateApp {
         //self.app_menu_file(ui, error_manager);
     }
 
-    fn central_panel(&mut self, ui: &mut egui::Ui, error_manager: &mut ErrorManager) {
+    fn central_panel(
+        &mut self,
+        ui: &mut egui::Ui,
+        error_manager: &mut ErrorManager,
+        _panel_list: &mut [Box<dyn bladvak::app::BladvakPanel<App = Self>>],
+    ) {
         self.app_central_panel(ui, error_manager);
         self.ui_windows(ui, error_manager);
     }

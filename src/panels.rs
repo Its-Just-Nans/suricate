@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use bladvak::app::PanelState;
 use bladvak::eframe::egui::CollapsingHeader;
 use bladvak::{BladvakApp, File, app::BladvakPanel, eframe::egui};
 
@@ -10,14 +11,23 @@ use crate::document::Document;
 use crate::types::{Family, Id, Individual};
 
 /// Panel for file information
-#[derive(Debug)]
-pub(crate) struct FileInfo;
+#[derive(Default, Debug)]
+pub(crate) struct FileInfo {
+    /// state
+    state: PanelState,
+}
 
 impl BladvakPanel for FileInfo {
     type App = SuricateApp;
 
     fn name(&self) -> &'static str {
         "File infos"
+    }
+    fn state(&self) -> &PanelState {
+        &self.state
+    }
+    fn state_mut(&mut self) -> &mut PanelState {
+        &mut self.state
     }
 
     fn has_settings(&self) -> bool {
@@ -61,14 +71,23 @@ impl BladvakPanel for FileInfo {
 }
 
 /// Panel for selection
-#[derive(Debug)]
-pub(crate) struct SelectionPanel;
+#[derive(Default, Debug)]
+pub(crate) struct SelectionPanel {
+    /// state
+    state: PanelState,
+}
 
 impl BladvakPanel for SelectionPanel {
     type App = SuricateApp;
 
     fn name(&self) -> &'static str {
         "Selection"
+    }
+    fn state(&self) -> &PanelState {
+        &self.state
+    }
+    fn state_mut(&mut self) -> &mut PanelState {
+        &mut self.state
     }
 
     fn has_settings(&self) -> bool {
